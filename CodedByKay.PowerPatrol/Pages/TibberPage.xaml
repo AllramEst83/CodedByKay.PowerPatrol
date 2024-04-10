@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="CodedByKay.PowerPatrol.Pages.TibberPage"
+             xmlns:viewmodel="clr-namespace:CodedByKay.PowerPatrol.ViewModels"
+             xmlns:microcharts="clr-namespace:Microcharts.Maui;assembly=Microcharts.Maui" 
+             x:DataType="viewmodel:TibberViewModel"
+             Title="{Binding TibberAddress}">
+
+    <RefreshView
+          x:DataType="viewmodel:TibberViewModel"
+                Command="{Binding RefreshConversationsCommand}" 
+                IsRefreshing="{Binding IsRefreshing}">
+
+
+        <ScrollView>
+
+            <VerticalStackLayout Padding="20,5,20,20" Spacing="15" >
+
+                <Frame Padding="10,5,10,5" Margin="0" HorizontalOptions="CenterAndExpand" BackgroundColor="#63cdda">
+                    <Label Margin="0" Padding="0" FontSize="20" Text="Idag"/>
+                </Frame>
+                <Frame Margin="0" Padding="5" BorderColor="#F8EFBA" CornerRadius="10" BackgroundColor="#F8EFBA" HasShadow="True" >
+                    <microcharts:ChartView x:Name="chartViewOne" MinimumHeightRequest="450" Chart="{Binding TibberChartDataToday}" />
+                </Frame>
+
+                <!-- Divider -->
+                <BoxView HeightRequest="2" BackgroundColor="LightGray" Margin="0,10" />
+
+                <Frame Padding="10,5,10,5" Margin="0" HorizontalOptions="CenterAndExpand" BackgroundColor="#63cdda">
+                    <Label Margin="0" Padding="0" FontSize="20" Text="Imorgon"/>
+                </Frame>
+                <Frame
+                    Margin="0" Padding="5" CornerRadius="10" BackgroundColor="#f78fb3" HasShadow="True"
+                    IsVisible="{Binding TibberChartDataTomorrow, Converter={StaticResource EmptyToVisibilityConverter }}">
+                    <Label FontSize="14" Text="Ingen data finns för imorgon än..." HorizontalTextAlignment="Center" />
+                </Frame>
+
+                <Frame Margin="0" Padding="5" BorderColor="#F8EFBA" CornerRadius="10" BackgroundColor="#F8EFBA" HasShadow="True" IsVisible="{Binding TibberChartDataTomorrow, Converter={StaticResource NotEmptyToVisibilityConverter}}">
+                    
+                    <microcharts:ChartView 
+                         x:Name="chartViewTwo" 
+                         MinimumHeightRequest="450" 
+                         Chart="{Binding TibberChartDataTomorrow}" 
+                 
+                  />
+                </Frame>
+            </VerticalStackLayout>
+        </ScrollView>
+    </RefreshView>
+</ContentPage>

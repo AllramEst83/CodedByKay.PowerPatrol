@@ -4,12 +4,22 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:local="clr-namespace:CodedByKay.PowerPatrol"
+    xmlns:pages="clr-namespace:CodedByKay.PowerPatrol.Pages"
     Shell.FlyoutBehavior="Disabled"
     Title="CodedByKay.PowerPatrol">
 
-    <ShellContent
-        Title="Home"
-        ContentTemplate="{DataTemplate local:MainPage}"
-        Route="MainPage" />
+    <!-- Define the TabBar for bottom tabs -->
+    <TabBar>
 
+        <!-- Tab for the Tibber Page -->
+        <Tab Title="Tibber" Icon="tibber.png">
+            <ShellContent ContentTemplate="{DataTemplate pages:TibberPage}" />
+        </Tab>
+
+        <!-- Tab for the Easee Page -->
+        <Tab Title="Easee" Icon="easee.png">
+            <ShellContent ContentTemplate="{DataTemplate pages:EaseePage}" />
+        </Tab>
+
+    </TabBar>
 </Shell>

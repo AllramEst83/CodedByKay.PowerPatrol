@@ -1,24 +1,28 @@
-﻿namespace CodedByKay.PowerPatrol
+﻿using CodedByKay.PowerPatrol.ViewModels;
+
+namespace CodedByKay.PowerPatrol
 {
     public partial class MainPage : ContentPage
     {
-        int count = 0;
-
+        private readonly MainPageViewModel? viewModel;
         public MainPage()
         {
             InitializeComponent();
-        }
 
-        private void OnCounterClicked(object sender, EventArgs e)
-        {
-            count++;
-
-            if (count == 1)
-                CounterBtn.Text = $"Clicked {count} time";
+            if (Application.Current?.Handler?.MauiContext?.Services is not null)
+            {
+                viewModel = Application.Current.Handler.MauiContext.Services.GetService<MainPageViewModel>();
+                if (viewModel is null)
+                {
+                    throw new InvalidOperationException("ContactViewModel service not found.");
+                }
+            }
             else
-                CounterBtn.Text = $"Clicked {count} times";
+            {
+                throw new InvalidOperationException("Unable to access services.");
+            }
 
-            SemanticScreenReader.Announce(CounterBtn.Text);
+            BindingContext = viewModel;
         }
     }
 

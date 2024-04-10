@@ -1,6 +1,14 @@
-﻿using CommunityToolkit.Maui;
+﻿using CodedByKay.PowerPatrol.Interfaces;
+using CodedByKay.PowerPatrol.Models;
+using CodedByKay.PowerPatrol.Pages;
+using CodedByKay.PowerPatrol.Services;
+using CodedByKay.PowerPatrol.ViewModels;
+using CommunityToolkit.Maui;
+using Microcharts.Maui;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Plugin.LocalNotification;
+using SkiaSharp.Views.Maui.Controls.Hosting;
 using System.Diagnostics;
 
 namespace CodedByKay.PowerPatrol
@@ -13,6 +21,9 @@ namespace CodedByKay.PowerPatrol
             builder
                 .UseMauiApp<App>()
                 .UseMauiCommunityToolkit()
+                .UseSkiaSharp()
+                .UseMicrocharts()
+                .UseLocalNotification()
                 .ConfigureFonts(fonts =>
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
@@ -30,6 +41,34 @@ namespace CodedByKay.PowerPatrol
 #endif
 
             LoadConfiguration(builder);
+
+            builder.Services.AddOptions<ApplicationSettings>()
+                    .Bind(builder.Configuration.GetSection("ApplicationSettings"));
+
+            builder.Services.AddHttpClient("PowerPatrolClient", client =>
+            {
+                var appSettings = builder.Configuration.GetSection("ApplicationSettings").Get<ApplicationSettings>();
+                if (appSettings == null)
+                {
+                    throw new NullReferenceException("AppSettings can not be null.");
+                }
+
+                client.BaseAddress = new Uri(appSettings.TibberApiUrl);
+            });
+
+            builder.Services
+                     //Services
+                     .AddSingleton<ITibberService, TibberService>()
+                     .AddSingleton<IPreferencesService, PreferencesService>()
+
+            //Pages
+             .AddSingleton<MainPage>()
+             .AddSingleton<TibberPage>()
+             .AddSingleton<EaseePage>()
+
+            //ViewModels
+            .AddSingleton<MainPageViewModel>()
+            .AddSingleton<TibberViewModel>();
 
 #if DEBUG
             builder.Logging.AddDebug();
