@@ -8,7 +8,7 @@ namespace CodedByKay.PowerPatrol.Converters
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             // Shows the control when the collection is empty
-            if (value is null  || value is ICollection collection && collection.Count == 0)
+            if (value is null || value is ICollection collection && collection.Count == 0)
                 return true; // Visible
             else
                 return false; // Not visible (hide when there are items)

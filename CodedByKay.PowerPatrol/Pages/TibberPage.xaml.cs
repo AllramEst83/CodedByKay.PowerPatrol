@@ -1,8 +1,6 @@
 using CodedByKay.PowerPatrol.EventMessages;
 using CodedByKay.PowerPatrol.ViewModels;
 using CommunityToolkit.Mvvm.Messaging;
-using Microcharts;
-using SkiaSharp;
 
 namespace CodedByKay.PowerPatrol.Pages;
 
@@ -27,8 +25,6 @@ public partial class TibberPage : ContentPage
         }
 
         BindingContext = viewModel;
-
-
     }
     protected async override void OnAppearing()
     {

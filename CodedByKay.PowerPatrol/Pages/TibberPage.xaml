@@ -3,49 +3,147 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="CodedByKay.PowerPatrol.Pages.TibberPage"
              xmlns:viewmodel="clr-namespace:CodedByKay.PowerPatrol.ViewModels"
-             xmlns:microcharts="clr-namespace:Microcharts.Maui;assembly=Microcharts.Maui" 
+             xmlns:dxc="clr-namespace:DevExpress.Maui.Charts;assembly=DevExpress.Maui.Charts"
              x:DataType="viewmodel:TibberViewModel"
              Title="{Binding TibberAddress}">
+
+    <ContentPage.Resources>
+        <dxc:SeriesCrosshairOptions x:Key="lineSeriesHintOptions"
+                            PointTextPattern="{}{S}:{V}M"
+                            ShowInLabel="True"
+                            AxisLabelVisible="True"
+                            AxisLineVisible="True"/>
+    </ContentPage.Resources>
 
     <RefreshView
           x:DataType="viewmodel:TibberViewModel"
                 Command="{Binding RefreshConversationsCommand}" 
                 IsRefreshing="{Binding IsRefreshing}">
 
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
 
-        <ScrollView>
+            <dxc:ChartView Grid.Row="0">
+                <!--Chart Lines-->
+                <dxc:ChartView.Series>
 
-            <VerticalStackLayout Padding="20,5,20,20" Spacing="15" >
+                    <dxc:LineSeries DisplayName="Idag" HintOptions="{StaticResource lineSeriesHintOptions}" MarkersVisible="True" x:DataType="viewmodel:TibberViewModel">
+                        <dxc:LineSeries.Data>
+                            <dxc:SeriesDataAdapter DataSource="{Binding TibberChartDataToday}"
+                                 ArgumentDataMember="Time">
+                                <dxc:ValueDataMember Type="Value" Member="Price"/>
+                            </dxc:SeriesDataAdapter>
+                        </dxc:LineSeries.Data>
 
-                <Frame Padding="10,5,10,5" Margin="0" HorizontalOptions="CenterAndExpand" BackgroundColor="#63cdda">
-                    <Label Margin="0" Padding="0" FontSize="20" Text="Idag"/>
-                </Frame>
-                <Frame Margin="0" Padding="5" BorderColor="#F8EFBA" CornerRadius="10" BackgroundColor="#F8EFBA" HasShadow="True" >
-                    <microcharts:ChartView x:Name="chartViewOne" MinimumHeightRequest="450" Chart="{Binding TibberChartDataToday}" />
-                </Frame>
+                        <!--Line style-->
+                        <dxc:LineSeries.Style>
+                            <dxc:LineSeriesStyle Stroke="#e056fd" StrokeThickness="2" MarkerSize="6">
+                                <dxc:LineSeriesStyle.MarkerStyle>
+                                    <dxc:MarkerStyle Fill="#e056fd"/>
+                                </dxc:LineSeriesStyle.MarkerStyle>
+                            </dxc:LineSeriesStyle>
+                        </dxc:LineSeries.Style>
+                        <!--Line style-->
+                    </dxc:LineSeries>
 
-                <!-- Divider -->
-                <BoxView HeightRequest="2" BackgroundColor="LightGray" Margin="0,10" />
 
-                <Frame Padding="10,5,10,5" Margin="0" HorizontalOptions="CenterAndExpand" BackgroundColor="#63cdda">
-                    <Label Margin="0" Padding="0" FontSize="20" Text="Imorgon"/>
-                </Frame>
-                <Frame
-                    Margin="0" Padding="5" CornerRadius="10" BackgroundColor="#f78fb3" HasShadow="True"
-                    IsVisible="{Binding TibberChartDataTomorrow, Converter={StaticResource EmptyToVisibilityConverter }}">
-                    <Label FontSize="14" Text="Ingen data finns för imorgon än..." HorizontalTextAlignment="Center" />
-                </Frame>
+                    <dxc:LineSeries DisplayName="Imorgon" HintOptions="{StaticResource lineSeriesHintOptions}" MarkersVisible="True" x:DataType="viewmodel:TibberViewModel">
+                        <dxc:LineSeries.Data>
+                            <dxc:SeriesDataAdapter DataSource="{Binding TibberChartDataTomorrow}"
+                                          ArgumentDataMember="Time">
+                                <dxc:ValueDataMember Type="Value" Member="Price"/>
+                            </dxc:SeriesDataAdapter>
+                        </dxc:LineSeries.Data>
 
-                <Frame Margin="0" Padding="5" BorderColor="#F8EFBA" CornerRadius="10" BackgroundColor="#F8EFBA" HasShadow="True" IsVisible="{Binding TibberChartDataTomorrow, Converter={StaticResource NotEmptyToVisibilityConverter}}">
-                    
-                    <microcharts:ChartView 
-                         x:Name="chartViewTwo" 
-                         MinimumHeightRequest="450" 
-                         Chart="{Binding TibberChartDataTomorrow}" 
-                 
-                  />
-                </Frame>
-            </VerticalStackLayout>
-        </ScrollView>
+                        <!--Line style-->
+                        <dxc:LineSeries.Style>
+                            <dxc:LineSeriesStyle Stroke="#6ab04c" StrokeThickness="2" MarkerSize="6">
+                                <dxc:LineSeriesStyle.MarkerStyle>
+                                    <dxc:MarkerStyle Fill="#6ab04c"/>
+                                </dxc:LineSeriesStyle.MarkerStyle>
+                            </dxc:LineSeriesStyle>
+                        </dxc:LineSeries.Style>
+                        <!--Line style-->
+                    </dxc:LineSeries>
+
+                </dxc:ChartView.Series>
+                <!--Chart Lines-->
+
+                <!--Crosshair-->
+                <dxc:ChartView.Hint>
+                    <dxc:Hint>
+                        <dxc:Hint.Behavior>
+                            <dxc:CrosshairHintBehavior GroupHeaderTextPattern="{}{A$YYYY}" 
+                                 MaxSeriesCount="3"/>
+                        </dxc:Hint.Behavior>
+                    </dxc:Hint>
+                </dxc:ChartView.Hint>
+                <!--Crosshair-->
+
+                <!--Legend text-->
+                <dxc:ChartView.Legend>
+                    <dxc:Legend VerticalPosition="TopOutside" HorizontalPosition="Center" Orientation="LeftToRight">
+                        <dxc:Legend.Style>
+                            <dxc:LegendStyle>
+                                <dxc:LegendStyle.TextStyle>
+                                    <dxc:TextStyle Color="Tan" Size="14"/>
+                                </dxc:LegendStyle.TextStyle>
+                            </dxc:LegendStyle>
+                        </dxc:Legend.Style>
+                    </dxc:Legend>
+                </dxc:ChartView.Legend>
+                <!--Legend text-->
+
+                <!--X axis config-->
+                <dxc:ChartView.AxisX>
+                    <dxc:DateTimeAxisX MeasureUnit="Hour" GridAlignment="Hour" GridSpacing="6">
+                        <dxc:DateTimeAxisX.Label>
+                            <dxc:AxisLabel TextFormat="HH:00" Angle="45">
+                                <dxc:AxisLabel.Style>
+                                    <dxc:AxisLabelStyle>
+                                        <dxc:AxisLabelStyle.TextStyle>
+                                            <dxc:TextStyle Color="Tan" Size="14"/>
+                                        </dxc:AxisLabelStyle.TextStyle>
+                                    </dxc:AxisLabelStyle>
+                                </dxc:AxisLabel.Style>
+                            </dxc:AxisLabel>
+                        </dxc:DateTimeAxisX.Label>
+                    </dxc:DateTimeAxisX>
+                </dxc:ChartView.AxisX>
+                <!--X axid config-->
+
+                <!--Y axis config-->
+                <dxc:ChartView.AxisY>
+                    <dxc:NumericAxisY>
+                        <dxc:NumericAxisY.Title>
+                            <dxc:AxisTitle Text="Öre/kwh">
+                                <dxc:AxisTitle.Style>
+                                    <dxc:TitleStyle>
+                                        <dxc:TitleStyle.TextStyle>
+                                            <dxc:TextStyle Size="16" Color="Tan"/>
+                                        </dxc:TitleStyle.TextStyle>
+                                    </dxc:TitleStyle>
+                                </dxc:AxisTitle.Style>
+                            </dxc:AxisTitle>
+                        </dxc:NumericAxisY.Title>
+                        <dxc:NumericAxisY.Label>
+                            <dxc:AxisLabel TextFormat="#.# öre" Position="Outside">
+                                <dxc:AxisLabel.Style>
+                                    <dxc:AxisLabelStyle>
+                                        <dxc:AxisLabelStyle.TextStyle>
+                                            <dxc:TextStyle Size="12" Color="Tan"/>
+                                        </dxc:AxisLabelStyle.TextStyle>
+                                    </dxc:AxisLabelStyle>
+                                </dxc:AxisLabel.Style>
+                            </dxc:AxisLabel>
+                        </dxc:NumericAxisY.Label>
+                    </dxc:NumericAxisY>
+                </dxc:ChartView.AxisY>
+                <!--Y axis config-->
+
+            </dxc:ChartView>
+        </Grid>
     </RefreshView>
 </ContentPage>

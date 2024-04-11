@@ -6,9 +6,8 @@ using CommunityToolkit.Maui.Alerts;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
-using Microcharts;
 using Microsoft.Extensions.Options;
-using SkiaSharp;
+using System.Collections.ObjectModel;
 using System.Runtime.InteropServices;
 
 namespace CodedByKay.PowerPatrol.ViewModels
@@ -34,13 +33,15 @@ namespace CodedByKay.PowerPatrol.ViewModels
         private string tibberAddress;
 
         [ObservableProperty]
-        private PointChart tibberChartDataToday;
-        [ObservableProperty]
-        private PointChart tibberChartDataTomorrow;
-        [ObservableProperty]
-        private bool isRefreshing;
+        private bool isRefreshing = false;
+
         private bool isRegistered = false;
 
+        [ObservableProperty]
+        ObservableCollection<EnergyPrice> tibberChartDataToday = [];
+
+        [ObservableProperty]
+        ObservableCollection<EnergyPrice> tibberChartDataTomorrow = [];
 
 
         public void RegisterEvents()
@@ -85,8 +86,7 @@ namespace CodedByKay.PowerPatrol.ViewModels
         {
             CurrentEnergyPrice storedTibberData;
             storedTibberData = _preferencesService.Get<CurrentEnergyPrice>(_applicationSettings.TibberHomeDetailsKey);
-            CurrentSubscription tibberConsumtionData = null;
-
+            
             if (storedTibberData is null)
             {
                 storedTibberData = await _tibberService.GetEnergyConsumption();
@@ -94,98 +94,49 @@ namespace CodedByKay.PowerPatrol.ViewModels
             }
 
             TibberAddress = storedTibberData.Address.Address1;
-            tibberConsumtionData = storedTibberData.CurrentSubscription;
+            CurrentSubscription tibberConsumtionData = storedTibberData.CurrentSubscription;
 
             if (tibberConsumtionData is null)
             {
                 await Toast.Make("Ooppss! Ett fel inträffade när din data skulle hämtas.", CommunityToolkit.Maui.Core.ToastDuration.Long).Show(CancellationToken.None);
                 return;
             }
-            List<ChartEntry> chartEntryListOne = new List<ChartEntry>();
-            List<ChartEntry> chartEntryListTwo = new List<ChartEntry>();
 
-            if (tibberConsumtionData.PriceInfo.Today.Count() > 0)
+            if (tibberConsumtionData.PriceInfo.Today.Count > 0)
             {
                 int colorIndexOne = 0;
                 foreach (var item in tibberConsumtionData.PriceInfo.Today)
                 {
                     var color = flatColors[colorIndexOne % flatColors.Count];
                     // Convert kronor to öre
-                    var totalInOre = Math.Round(item.Total * 100);
+                    var totalInOre = item.Total * 100;
 
-                    var chartEntry = new ChartEntry((float)totalInOre) // Ensure this is the correct type conversion
-                    {
-                        Label = GetSwedishTime(item.StartsAt),
-                        // Format as öre, rounding to nearest whole number if necessary
-                        ValueLabel = $"{totalInOre} öre",
-                        Color = SKColor.Parse(color)
-                    };
+                    var energyPrice = new EnergyPrice(GetSwedishTime(item.StartsAt), (float)totalInOre, color);
 
-                    chartEntryListOne.Add(chartEntry);
+                    TibberChartDataToday.Add(energyPrice);
 
                     colorIndexOne++;
                 }
-                var maxTotalToday = (float)tibberConsumtionData.PriceInfo.Today.Max(item => item.Total);
-
-                TibberChartDataToday = new LineChart()
-                {
-                    Entries = chartEntryListOne,
-                    LineMode = LineMode.Spline,
-                    LineSize = 20,
-                    EnableYFadeOutGradient = true,
-                    IsAnimated = true,
-                    AnimationDuration = new TimeSpan(0,0,2),
-                    LabelTextSize = 20,
-                    ValueLabelTextSize = 20,
-                    BackgroundColor = SKColor.Parse("#F8EFBA"),
-                    LabelColor = SKColor.Parse("#2C3A47"),
-                    MaxValue = maxTotalToday,
-                    MinValue = 0
-                };
             }
 
-            if (tibberConsumtionData.PriceInfo.Tomorrow.Count() > 0)
+            if (tibberConsumtionData.PriceInfo.Tomorrow.Count > 0)
             {
                 int colorIndexTwo = 0;
                 foreach (var item in tibberConsumtionData.PriceInfo.Tomorrow)
                 {
                     var color = flatColors[colorIndexTwo % flatColors.Count];
-                    // Convert kronor to öre
-                    var totalInOre = Math.Round(item.Total * 100);
+                    var totalInOre = item.Total * 100;
 
-                    var chartEntry = new ChartEntry((float)totalInOre) // Ensure this is the correct type conversion
-                    {
-                        Label = GetSwedishTime(item.StartsAt),
-                        // Format as öre, rounding to nearest whole number if necessary
-                        ValueLabel = $"{totalInOre} öre",
-                        Color = SKColor.Parse(color)
-                    };
+                    var energyPrice = new EnergyPrice(GetSwedishTime(item.StartsAt), (float)totalInOre, color);
 
-                    chartEntryListTwo.Add(chartEntry);
+                    TibberChartDataTomorrow.Add(energyPrice);
 
                     colorIndexTwo++;
                 }
-                var maxTotalTomorow = (float)tibberConsumtionData.PriceInfo.Tomorrow.Max(item => item.Total);
-
-                TibberChartDataTomorrow = new LineChart()
-                {
-                    Entries = chartEntryListTwo,
-                    LineMode = LineMode.Spline,
-                    LineSize = 20,
-                    EnableYFadeOutGradient = true,
-                    IsAnimated = true,
-                    AnimationDuration = new TimeSpan(0, 0, 2),
-                    LabelTextSize = 20,
-                    ValueLabelTextSize = 20,
-                    BackgroundColor = SKColor.Parse("#F8EFBA"),
-                    LabelColor = SKColor.Parse("#2C3A47"),
-                    MaxValue = maxTotalTomorow,
-                    MinValue = 0
-                };
             }
         }
 
-        private string GetSwedishTime(DateTime utcDateTime)
+        private DateTime GetSwedishTime(DateTime utcDateTime)
         {
             // Ensure utcDateTime is treated as UTC
             utcDateTime = DateTime.SpecifyKind(utcDateTime, DateTimeKind.Utc);
@@ -201,7 +152,9 @@ namespace CodedByKay.PowerPatrol.ViewModels
                 DateTime swedishTime = TimeZoneInfo.ConvertTimeFromUtc(utcDateTime, swedishTimeZone);
 
                 // Format the Swedish time as a string showing only hours and minutes
-                return swedishTime.ToString("HH:mm");
+
+                return swedishTime;
+
             }
             catch (TimeZoneNotFoundException ex)
             {
@@ -212,10 +165,10 @@ namespace CodedByKay.PowerPatrol.ViewModels
             {
                 Console.WriteLine($"An unexpected error occurred: {ex.Message}");
                 // Handle unexpected errors
+
             }
 
-            return "No time";
+            return DateTime.Now;
         }
-
     }
 }

@@ -4,11 +4,10 @@ using CodedByKay.PowerPatrol.Pages;
 using CodedByKay.PowerPatrol.Services;
 using CodedByKay.PowerPatrol.ViewModels;
 using CommunityToolkit.Maui;
-using Microcharts.Maui;
+using DevExpress.Maui;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Plugin.LocalNotification;
-using SkiaSharp.Views.Maui.Controls.Hosting;
 using System.Diagnostics;
 
 namespace CodedByKay.PowerPatrol
@@ -21,8 +20,7 @@ namespace CodedByKay.PowerPatrol
             builder
                 .UseMauiApp<App>()
                 .UseMauiCommunityToolkit()
-                .UseSkiaSharp()
-                .UseMicrocharts()
+                .UseDevExpress()
                 .UseLocalNotification()
                 .ConfigureFonts(fonts =>
                 {

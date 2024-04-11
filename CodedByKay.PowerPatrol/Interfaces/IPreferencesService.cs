@@ -30,6 +30,6 @@
         /// Clears all stored preferences.
         /// </summary>
         void Clear();
-       
+
     }
 }
