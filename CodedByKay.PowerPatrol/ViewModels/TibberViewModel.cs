@@ -18,17 +18,6 @@ namespace CodedByKay.PowerPatrol.ViewModels
         private readonly IPreferencesService _preferencesService;
         private readonly ApplicationSettings _applicationSettings;
 
-        public TibberViewModel(
-            ITibberService tibberService,
-            IPreferencesService preferencesService,
-            IOptions<ApplicationSettings> applicationSettings)
-        {
-            _tibberService = tibberService;
-            _preferencesService = preferencesService;
-            _applicationSettings = applicationSettings.Value;
-
-        }
-
         [ObservableProperty]
         private string tibberAddress;
 
@@ -44,6 +33,24 @@ namespace CodedByKay.PowerPatrol.ViewModels
         ObservableCollection<EnergyPrice> tibberChartDataTomorrow = [];
 
 
+        private readonly List<string> flatColors = new List<string>
+        {
+            "#f3a683", "#f7d794", "#778beb", "#e77f67", "#cf6a87",
+            "#f19066", "#f5cd79", "#546de5", "#e15f41", "#c44569",
+            "#786fa6", "#f8a5c2", "#63cdda", "#ea8685", "#596275",
+            "#574b90", "#f78fb3", "#3dc1d3", "#e66767", "#303952"
+        };
+
+        public TibberViewModel(
+            ITibberService tibberService,
+            IPreferencesService preferencesService,
+            IOptions<ApplicationSettings> applicationSettings)
+        {
+            _tibberService = tibberService;
+            _preferencesService = preferencesService;
+            _applicationSettings = applicationSettings.Value;
+        }
+    
         public void RegisterEvents()
         {
             if (!isRegistered)
@@ -65,16 +72,8 @@ namespace CodedByKay.PowerPatrol.ViewModels
             }
         }
 
-        private List<string> flatColors = new List<string>
-        {
-            "#f3a683", "#f7d794", "#778beb", "#e77f67", "#cf6a87",
-            "#f19066", "#f5cd79", "#546de5", "#e15f41", "#c44569",
-            "#786fa6", "#f8a5c2", "#63cdda", "#ea8685", "#596275",
-            "#574b90", "#f78fb3", "#3dc1d3", "#e66767", "#303952"
-        };
-
         [RelayCommand]
-        private async Task RefreshConversations()
+        private async Task RefreshTibberData()
         {
             IsRefreshing = true;
             _preferencesService.Clear();
@@ -84,7 +83,7 @@ namespace CodedByKay.PowerPatrol.ViewModels
 
         private async Task GetTibberData()
         {
-            CurrentEnergyPrice storedTibberData;
+            CurrentEnergyPrice? storedTibberData;
             storedTibberData = _preferencesService.Get<CurrentEnergyPrice>(_applicationSettings.TibberHomeDetailsKey);
             
             if (storedTibberData is null)
@@ -108,7 +107,7 @@ namespace CodedByKay.PowerPatrol.ViewModels
                 foreach (var item in tibberConsumtionData.PriceInfo.Today)
                 {
                     var color = flatColors[colorIndexOne % flatColors.Count];
-                    // Convert kronor to öre
+
                     var totalInOre = item.Total * 100;
 
                     var energyPrice = new EnergyPrice(GetSwedishTime(item.StartsAt), (float)totalInOre, color);
