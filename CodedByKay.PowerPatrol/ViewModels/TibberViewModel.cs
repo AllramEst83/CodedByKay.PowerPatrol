@@ -8,6 +8,7 @@ using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.Options;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace CodedByKay.PowerPatrol.ViewModels
@@ -19,10 +20,13 @@ namespace CodedByKay.PowerPatrol.ViewModels
         private readonly ApplicationSettings _applicationSettings;
 
         [ObservableProperty]
-        private string tibberAddress;
+        private double todayAveragePrice;
 
         [ObservableProperty]
-        private bool isRefreshing = false;
+        private double tomorrowAveragePrice;
+
+        [ObservableProperty]
+        private string tibberAddress;
 
         private bool isRegistered = false;
 
@@ -33,13 +37,13 @@ namespace CodedByKay.PowerPatrol.ViewModels
         ObservableCollection<EnergyPrice> tibberChartDataTomorrow = [];
 
 
-        private readonly List<string> flatColors = new List<string>
-        {
+        private readonly List<string> flatColors =
+        [
             "#f3a683", "#f7d794", "#778beb", "#e77f67", "#cf6a87",
             "#f19066", "#f5cd79", "#546de5", "#e15f41", "#c44569",
             "#786fa6", "#f8a5c2", "#63cdda", "#ea8685", "#596275",
             "#574b90", "#f78fb3", "#3dc1d3", "#e66767", "#303952"
-        };
+        ];
 
         public TibberViewModel(
             ITibberService tibberService,
@@ -75,10 +79,8 @@ namespace CodedByKay.PowerPatrol.ViewModels
         [RelayCommand]
         private async Task RefreshTibberData()
         {
-            IsRefreshing = true;
             _preferencesService.Clear();
             await GetTibberData();
-            IsRefreshing = !IsRefreshing;
         }
 
         private async Task GetTibberData()
@@ -101,6 +103,7 @@ namespace CodedByKay.PowerPatrol.ViewModels
                 return;
             }
 
+            double todayTotalSum = 0;
             if (tibberConsumtionData.PriceInfo.Today.Count > 0)
             {
                 int colorIndexOne = 0;
@@ -109,6 +112,7 @@ namespace CodedByKay.PowerPatrol.ViewModels
                     var color = flatColors[colorIndexOne % flatColors.Count];
 
                     var totalInOre = item.Total * 100;
+                    todayTotalSum += totalInOre;
 
                     var energyPrice = new EnergyPrice(GetSwedishTime(item.StartsAt), (float)totalInOre, color);
 
@@ -118,6 +122,10 @@ namespace CodedByKay.PowerPatrol.ViewModels
                 }
             }
 
+            double averagePriceToday = todayTotalSum / tibberConsumtionData.PriceInfo.Today.Count;
+            TodayAveragePrice = Math.Round(averagePriceToday, 1);
+
+            double tomorrowTotalSum = 0;
             if (tibberConsumtionData.PriceInfo.Tomorrow.Count > 0)
             {
                 int colorIndexTwo = 0;
@@ -125,6 +133,7 @@ namespace CodedByKay.PowerPatrol.ViewModels
                 {
                     var color = flatColors[colorIndexTwo % flatColors.Count];
                     var totalInOre = item.Total * 100;
+                    tomorrowTotalSum += totalInOre;
 
                     var energyPrice = new EnergyPrice(GetSwedishTime(item.StartsAt), (float)totalInOre, color);
 
@@ -133,6 +142,9 @@ namespace CodedByKay.PowerPatrol.ViewModels
                     colorIndexTwo++;
                 }
             }
+
+            double averagePriceTomorrow = tomorrowTotalSum / tibberConsumtionData.PriceInfo.Tomorrow.Count;
+            TomorrowAveragePrice = Math.Round(averagePriceTomorrow, 1);
         }
 
         private DateTime GetSwedishTime(DateTime utcDateTime)
