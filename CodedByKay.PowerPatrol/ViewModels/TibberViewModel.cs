@@ -1,4 +1,5 @@
 ﻿using CodedByKay.PowerPatrol.EventMessages;
+using CodedByKay.PowerPatrol.Extensions;
 using CodedByKay.PowerPatrol.Interfaces;
 using CodedByKay.PowerPatrol.Models;
 using CodedByKay.PowerPatrol.Services;
@@ -8,8 +9,6 @@ using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.Options;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
-using System.Runtime.InteropServices;
 
 namespace CodedByKay.PowerPatrol.ViewModels
 {
@@ -63,6 +62,7 @@ namespace CodedByKay.PowerPatrol.ViewModels
                 {
                     await GetTibberData();
                 });
+
                 isRegistered = true;
             }
         }
@@ -79,15 +79,83 @@ namespace CodedByKay.PowerPatrol.ViewModels
         [RelayCommand]
         private async Task RefreshTibberData()
         {
+            TibberChartDataToday = [];
+            TibberChartDataTomorrow = [];
+
             _preferencesService.Clear();
             await GetTibberData();
         }
 
+        private CurrentEnergyPrice? GetStoredTibberData()
+        {
+            var storedData = _preferencesService.Get<CurrentEnergyPrice>(_applicationSettings.TibberHomeDetailsKey);
+            if (storedData is null)
+            {
+                return null;
+            }
+
+            return storedData;
+        }
+
+        private void CalculateTodaysPricesAndAverage(PriceInfo priceInfo)
+        {
+            double todayTotalSum = 0;
+            if (priceInfo.Today.Count > 0)
+            {
+                int colorIndexOne = 0;
+                foreach (var item in priceInfo.Today)
+                {
+                    var color = flatColors[colorIndexOne % flatColors.Count];
+
+                    var totalInOre = item.Total * 100;
+                    todayTotalSum += totalInOre;
+
+                    var energyPrice = new EnergyPrice(item.StartsAt.ToSwedishTime(), (float)totalInOre, color);
+
+                    TibberChartDataToday.Add(energyPrice);
+
+                    colorIndexOne++;
+                }
+            }
+
+            double averagePriceToday = todayTotalSum / priceInfo.Today.Count;
+            TodayAveragePrice = Math.Round(averagePriceToday, 1);
+        }
+
+        private void CalculatetomorrowsPricesAndAverage(PriceInfo priceInfo)
+        {
+            double tomorrowTotalSum = 0;
+            if (priceInfo.Tomorrow.Count > 0)
+            {
+                int colorIndexTwo = 0;
+                foreach (var item in priceInfo.Tomorrow)
+                {
+                    var color = flatColors[colorIndexTwo % flatColors.Count];
+                    var totalInOre = item.Total * 100;
+                    tomorrowTotalSum += totalInOre;
+
+                    var energyPrice = new EnergyPrice(item.StartsAt.ToSwedishTime(), (float)totalInOre, color);
+
+                    TibberChartDataTomorrow.Add(energyPrice);
+
+                    colorIndexTwo++;
+                }
+
+                double averagePriceTomorrow = tomorrowTotalSum / priceInfo.Tomorrow.Count;
+                TomorrowAveragePrice = Math.Round(averagePriceTomorrow, 1);
+            }
+        }
+
+        private async Task ShowToast(string message)
+        {
+            await Toast.Make(message, CommunityToolkit.Maui.Core.ToastDuration.Long).Show(CancellationToken.None);
+        }
         private async Task GetTibberData()
         {
             CurrentEnergyPrice? storedTibberData;
-            storedTibberData = _preferencesService.Get<CurrentEnergyPrice>(_applicationSettings.TibberHomeDetailsKey);
-            
+            storedTibberData = GetStoredTibberData();
+
+
             if (storedTibberData is null)
             {
                 storedTibberData = await _tibberService.GetEnergyConsumption();
@@ -99,87 +167,14 @@ namespace CodedByKay.PowerPatrol.ViewModels
 
             if (tibberConsumtionData is null)
             {
-                await Toast.Make("Ooppss! Ett fel inträffade när din data skulle hämtas.", CommunityToolkit.Maui.Core.ToastDuration.Long).Show(CancellationToken.None);
+                await ShowToast("Ooppss! Ett fel inträffade när din data skulle hämtas.");                               
                 return;
             }
 
-            double todayTotalSum = 0;
-            if (tibberConsumtionData.PriceInfo.Today.Count > 0)
-            {
-                int colorIndexOne = 0;
-                foreach (var item in tibberConsumtionData.PriceInfo.Today)
-                {
-                    var color = flatColors[colorIndexOne % flatColors.Count];
+            CalculateTodaysPricesAndAverage(tibberConsumtionData.PriceInfo);
+            CalculatetomorrowsPricesAndAverage(tibberConsumtionData.PriceInfo);
 
-                    var totalInOre = item.Total * 100;
-                    todayTotalSum += totalInOre;
-
-                    var energyPrice = new EnergyPrice(GetSwedishTime(item.StartsAt), (float)totalInOre, color);
-
-                    TibberChartDataToday.Add(energyPrice);
-
-                    colorIndexOne++;
-                }
-            }
-
-            double averagePriceToday = todayTotalSum / tibberConsumtionData.PriceInfo.Today.Count;
-            TodayAveragePrice = Math.Round(averagePriceToday, 1);
-
-            double tomorrowTotalSum = 0;
-            if (tibberConsumtionData.PriceInfo.Tomorrow.Count > 0)
-            {
-                int colorIndexTwo = 0;
-                foreach (var item in tibberConsumtionData.PriceInfo.Tomorrow)
-                {
-                    var color = flatColors[colorIndexTwo % flatColors.Count];
-                    var totalInOre = item.Total * 100;
-                    tomorrowTotalSum += totalInOre;
-
-                    var energyPrice = new EnergyPrice(GetSwedishTime(item.StartsAt), (float)totalInOre, color);
-
-                    TibberChartDataTomorrow.Add(energyPrice);
-
-                    colorIndexTwo++;
-                }
-            }
-
-            double averagePriceTomorrow = tomorrowTotalSum / tibberConsumtionData.PriceInfo.Tomorrow.Count;
-            TomorrowAveragePrice = Math.Round(averagePriceTomorrow, 1);
-        }
-
-        private DateTime GetSwedishTime(DateTime utcDateTime)
-        {
-            // Ensure utcDateTime is treated as UTC
-            utcDateTime = DateTime.SpecifyKind(utcDateTime, DateTimeKind.Utc);
-
-            // Swedish time zone ID
-            string swedishTimeZoneId = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                                    ? "W. Europe Standard Time"
-                                    : "Europe/Stockholm";
-
-            try
-            {
-                TimeZoneInfo swedishTimeZone = TimeZoneInfo.FindSystemTimeZoneById(swedishTimeZoneId);
-                DateTime swedishTime = TimeZoneInfo.ConvertTimeFromUtc(utcDateTime, swedishTimeZone);
-
-                // Format the Swedish time as a string showing only hours and minutes
-
-                return swedishTime;
-
-            }
-            catch (TimeZoneNotFoundException ex)
-            {
-                Console.WriteLine($"The time zone '{swedishTimeZoneId}' could not be found on this system.");
-                // Handle the case where the time zone ID is not found. You could default to UTC or another known ID.
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"An unexpected error occurred: {ex.Message}");
-                // Handle unexpected errors
-
-            }
-
-            return DateTime.Now;
+            await ShowToast("Huuzaa! Grafen är uppdaterad!");
         }
     }
 }
