@@ -2,14 +2,9 @@
 <Application xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:local="clr-namespace:CodedByKay.PowerPatrol"
-             xmlns:converters="clr-namespace:CodedByKay.PowerPatrol.Converters"
              x:Class="CodedByKay.PowerPatrol.App">
     <Application.Resources>
         <ResourceDictionary>
-
-            <converters:CollectionNotEmptyToVisibilityConverter x:Key="NotEmptyToVisibilityConverter"/>
-            <converters:EmptyToVisibilityConverter x:Key="EmptyToVisibilityConverter"/>
-            
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="Resources/Styles/Colors.xaml" />
                 <ResourceDictionary Source="Resources/Styles/Styles.xaml" />

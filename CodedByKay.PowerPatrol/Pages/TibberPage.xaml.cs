@@ -26,19 +26,23 @@ public partial class TibberPage : ContentPage
 
         BindingContext = viewModel;
     }
-    protected override void OnAppearing()
+
+    protected override async void OnAppearing()
     {
         base.OnAppearing();
 
         if (BindingContext is TibberViewModel viewModel)
         {
-            viewModel.RegisterEvents();
+            await viewModel.GetTibberData();
+            viewModel.UpdateAveragePriceTitles();
+            await viewModel.UpdateTime();
+            //viewModel.RegisterEvents();
         }
 
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            WeakReferenceMessenger.Default.Send(new LoadTibberDataEventMessage());
-        });
+        //MainThread.BeginInvokeOnMainThread(() =>
+        //{
+        //    WeakReferenceMessenger.Default.Send(new LoadTibberDataEventMessage());
+        //});
     }
     protected override void OnDisappearing()
     {
@@ -48,5 +52,39 @@ public partial class TibberPage : ContentPage
         {
             viewModel.UnregisterEvents();
         }
+    }
+
+    private void TodayChecked_CheckedChanged(object sender, EventArgs e)
+    {
+        TodaysChart.Visible = !TodaysChart.Visible;
+    }
+
+    private void TomorrowChecked_CheckedChanged(object sender, EventArgs e)
+    {
+        TomorrowsChart.Visible = !TomorrowsChart.Visible;
+    }
+
+    private void AverageConstTodayChecked_CheckedChanged(object sender, EventArgs e)
+    {
+        if (BindingContext is TibberViewModel viewModel)
+        {
+
+            viewModel.IsTodayAveragePriceConstantVisible = !viewModel.IsTodayAveragePriceConstantVisible;
+        }
+    }
+
+    private void AverageConstTomorrowChecked_CheckedChanged(object sender, EventArgs e)
+    {
+        if (BindingContext is TibberViewModel viewModel)
+        {
+
+            viewModel.IsTomorrowAveragePriceConstantVisible = !viewModel.IsTomorrowAveragePriceConstantVisible;
+        }
+    }
+
+
+    private void XAxisTimeConstChecked_CheckedChanged(object sender, EventArgs e)
+    {
+        AxisTimeConst.Visible = !AxisTimeConst.Visible;
     }
 }

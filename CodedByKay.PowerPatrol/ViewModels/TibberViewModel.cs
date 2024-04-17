@@ -2,13 +2,13 @@
 using CodedByKay.PowerPatrol.Extensions;
 using CodedByKay.PowerPatrol.Interfaces;
 using CodedByKay.PowerPatrol.Models;
-using CodedByKay.PowerPatrol.Services;
 using CommunityToolkit.Maui.Alerts;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.Options;
 using System.Collections.ObjectModel;
+
 
 namespace CodedByKay.PowerPatrol.ViewModels
 {
@@ -18,14 +18,74 @@ namespace CodedByKay.PowerPatrol.ViewModels
         private readonly IPreferencesService _preferencesService;
         private readonly ApplicationSettings _applicationSettings;
 
+        //Today
         [ObservableProperty]
-        private double todayAveragePrice;
+        private double todayAveragePrice = 0;
 
         [ObservableProperty]
-        private double tomorrowAveragePrice;
+        private bool showTodayChart = false;
+
+        [ObservableProperty]
+        private bool isTodayAveragePriceConstantVisible = false;
+
+        [ObservableProperty]
+        private bool isTodayAveragePriceToggleVisible = false;
+
+        [ObservableProperty]
+        private string todayAveragePriceTitle = string.Empty;
+
+        [ObservableProperty]
+        private double lowestPriceToday = 0;
+
+        [ObservableProperty]
+        private double highestPriceToday = 0;
+
+        [ObservableProperty]
+        double todaySegmentPointOne = 0;
+
+        [ObservableProperty]
+        double todaySegmentPointTwo = 0;
+        //Today
+
+        //Tomorrow
+        [ObservableProperty]
+        private double tomorrowAveragePrice = 0;
+
+        [ObservableProperty]
+        private bool showTomorrowsChart = false;
+
+        [ObservableProperty]
+        private bool isTomorrowAveragePriceConstantVisible = false;
+
+        [ObservableProperty]
+        private bool isTomorrowAveragePriceToggleVisible = false;
+
+        [ObservableProperty]
+        private string tomorrowAveragePriceTitle = string.Empty;
+
+        [ObservableProperty]
+        private double lowestPriceTomorrow = 0;
+
+        [ObservableProperty]
+        private double highestPriceTomorrow = 0;
+
+        [ObservableProperty]
+        private double tomorrowSegmentPointOne = 0;
+
+        [ObservableProperty]
+        private double tomorrowSegmentPointTwo = 0;
+        //Tomorrow
 
         [ObservableProperty]
         private string tibberAddress;
+
+        [ObservableProperty]
+        private string timeTitle;
+
+        [ObservableProperty]
+        private DateTime currentTime;
+
+
 
         private bool isRegistered = false;
 
@@ -34,15 +94,6 @@ namespace CodedByKay.PowerPatrol.ViewModels
 
         [ObservableProperty]
         ObservableCollection<EnergyPrice> tibberChartDataTomorrow = [];
-
-
-        private readonly List<string> flatColors =
-        [
-            "#f3a683", "#f7d794", "#778beb", "#e77f67", "#cf6a87",
-            "#f19066", "#f5cd79", "#546de5", "#e15f41", "#c44569",
-            "#786fa6", "#f8a5c2", "#63cdda", "#ea8685", "#596275",
-            "#574b90", "#f78fb3", "#3dc1d3", "#e66767", "#303952"
-        ];
 
         public TibberViewModel(
             ITibberService tibberService,
@@ -53,14 +104,16 @@ namespace CodedByKay.PowerPatrol.ViewModels
             _preferencesService = preferencesService;
             _applicationSettings = applicationSettings.Value;
         }
-    
+
         public void RegisterEvents()
         {
             if (!isRegistered)
             {
                 WeakReferenceMessenger.Default.Register<LoadTibberDataEventMessage>(this, async (recipient, message) =>
                 {
+                    await UpdateTime();
                     await GetTibberData();
+                    UpdateAveragePriceTitles();
                 });
 
                 isRegistered = true;
@@ -82,8 +135,24 @@ namespace CodedByKay.PowerPatrol.ViewModels
             TibberChartDataToday = [];
             TibberChartDataTomorrow = [];
 
+            ShowTodayChart = false;
+            ShowTomorrowsChart = false;
+
+            TodayAveragePrice = 0;
+            TomorrowAveragePrice = 0;
+
+            LowestPriceToday = 0;
+            HighestPriceToday = 0;
+
+            LowestPriceTomorrow = 0;
+            HighestPriceTomorrow = 0;
+
+            await UpdateTime();
             _preferencesService.Clear();
             await GetTibberData();
+            UpdateAveragePriceTitles();
+
+            await ShowToast("Huuzaa! Grafen är uppdaterad!");
         }
 
         private CurrentEnergyPrice? GetStoredTibberData()
@@ -97,60 +166,153 @@ namespace CodedByKay.PowerPatrol.ViewModels
             return storedData;
         }
 
-        private void CalculateTodaysPricesAndAverage(PriceInfo priceInfo)
+        private void CalculateTodaysPricesAndAverage(PriceInfo priceInfo, string timeZone)
         {
             double todayTotalSum = 0;
+            double highestPrice = double.MinValue;
+            double lowestPrice = double.MaxValue;
+
             if (priceInfo.Today.Count > 0)
             {
-                int colorIndexOne = 0;
                 foreach (var item in priceInfo.Today)
                 {
-                    var color = flatColors[colorIndexOne % flatColors.Count];
 
                     var totalInOre = item.Total * 100;
                     todayTotalSum += totalInOre;
 
-                    var energyPrice = new EnergyPrice(item.StartsAt.ToSwedishTime(), (float)totalInOre, color);
+                    var energyPrice = new EnergyPrice(item.StartsAt.ConvertToTimeZone(timeZone), (float)totalInOre);
 
                     TibberChartDataToday.Add(energyPrice);
 
-                    colorIndexOne++;
+                    if (totalInOre > highestPrice) highestPrice = totalInOre;
+                    if (totalInOre < lowestPrice) lowestPrice = totalInOre;
                 }
-            }
 
-            double averagePriceToday = todayTotalSum / priceInfo.Today.Count;
-            TodayAveragePrice = Math.Round(averagePriceToday, 1);
+                HighestPriceToday = Math.Ceiling(highestPrice);
+                LowestPriceToday = Math.Floor(lowestPrice);
+
+                // Calculate the average price and round it
+                double averagePriceToday = todayTotalSum / priceInfo.Today.Count;
+                TodayAveragePrice = Math.Round(averagePriceToday, 0); // Ensuring no decimals
+
+                // Calculate the segment points based on the rounded average price
+                TodaySegmentPointOne = TodayAveragePrice - 10;
+                TodaySegmentPointTwo = TodayAveragePrice + 10;
+
+                // Ensure the segment points do not exceed the bounds of lowest and highest prices
+                TodaySegmentPointOne = Math.Max(TodaySegmentPointOne, LowestPriceToday);
+                TodaySegmentPointTwo = Math.Min(TodaySegmentPointTwo, HighestPriceToday);
+
+                ShowTodayChart = true;
+                IsTodayAveragePriceToggleVisible = true;
+                IsTodayAveragePriceConstantVisible = true;
+
+                Console.WriteLine("-----------------------PRICES-----------------------------");
+                Console.WriteLine("TODAY");
+                Console.WriteLine($"LowestPriceToday: {LowestPriceToday}");
+                Console.WriteLine($"SegmentPointOne: {TodaySegmentPointOne}");
+                Console.WriteLine($"TodaySegmentPointTwo: {TodaySegmentPointTwo}");
+                Console.WriteLine($"HighestPriceToday: {HighestPriceToday}");
+                Console.WriteLine("-----------------------PRICES-----------------------------");
+            }
+            else
+            {
+                ShowTodayChart = false;
+                IsTodayAveragePriceToggleVisible = false;
+                IsTodayAveragePriceConstantVisible = false;
+            }
         }
 
-        private void CalculatetomorrowsPricesAndAverage(PriceInfo priceInfo)
+        private void CalculateTomorrowsPricesAndAverage(PriceInfo priceInfo, string timeZone)
         {
             double tomorrowTotalSum = 0;
+            double highestPrice = double.MinValue;
+            double lowestPrice = double.MaxValue;
+
             if (priceInfo.Tomorrow.Count > 0)
             {
-                int colorIndexTwo = 0;
                 foreach (var item in priceInfo.Tomorrow)
                 {
-                    var color = flatColors[colorIndexTwo % flatColors.Count];
                     var totalInOre = item.Total * 100;
                     tomorrowTotalSum += totalInOre;
 
-                    var energyPrice = new EnergyPrice(item.StartsAt.ToSwedishTime(), (float)totalInOre, color);
+                    var energyPrice = new EnergyPrice(item.StartsAt.ConvertToTimeZone(timeZone), (float)totalInOre);
 
                     TibberChartDataTomorrow.Add(energyPrice);
 
-                    colorIndexTwo++;
+                    if (totalInOre > highestPrice) highestPrice = totalInOre;
+                    if (totalInOre < lowestPrice) lowestPrice = totalInOre;
                 }
 
+                HighestPriceTomorrow = Math.Ceiling(highestPrice);
+                LowestPriceTomorrow = Math.Floor(lowestPrice);
+
+                // Calculate the average price and round it
                 double averagePriceTomorrow = tomorrowTotalSum / priceInfo.Tomorrow.Count;
-                TomorrowAveragePrice = Math.Round(averagePriceTomorrow, 1);
+                TomorrowAveragePrice = Math.Round(averagePriceTomorrow, 0); // Ensuring no decimals
+
+                // Calculate the segment points based on the rounded average price
+                TomorrowSegmentPointOne = TomorrowAveragePrice - 10;
+                TomorrowSegmentPointTwo = TomorrowAveragePrice + 10;
+
+                // Ensure the segment points do not exceed the bounds of lowest and highest prices
+                TomorrowSegmentPointOne = Math.Max(TomorrowSegmentPointOne, LowestPriceTomorrow);
+                TomorrowSegmentPointTwo = Math.Min(TomorrowSegmentPointTwo, HighestPriceTomorrow);
+
+                ShowTomorrowsChart = true;
+                IsTomorrowAveragePriceToggleVisible = true;
+                IsTomorrowAveragePriceConstantVisible = true;
+
+                Console.WriteLine("-----------------------PRICES-----------------------------");
+                Console.WriteLine("TOMORROW");
+                Console.WriteLine($"LowestPriceToday: {LowestPriceTomorrow}");
+                Console.WriteLine($"TomorrowSegmentPointOne: {TomorrowSegmentPointOne}");
+                Console.WriteLine($"TomorrowSegmentPointTwo: {TomorrowSegmentPointTwo}");
+                Console.WriteLine($"HighestPriceToday: {HighestPriceTomorrow}");
+                Console.WriteLine("-----------------------PRICES-----------------------------");              
+            }
+            else
+            {
+                ShowTomorrowsChart = false;
+                IsTomorrowAveragePriceToggleVisible = false;
+                IsTomorrowAveragePriceConstantVisible = false;
             }
         }
 
-        private async Task ShowToast(string message)
+        private static async Task ShowToast(string message)
         {
             await Toast.Make(message, CommunityToolkit.Maui.Core.ToastDuration.Long).Show(CancellationToken.None);
         }
-        private async Task GetTibberData()
+
+        public async Task UpdateTime()
+        {
+            var (tibberData, timeZoneId) = await _tibberService.GetCurrentConsumtion();
+            if (tibberData is null)
+            {
+                throw new InvalidOperationException("Tibber data can not be null");
+            }
+
+            var currentConsumtion = tibberData.PriceInfo.Current.Total * 100;
+            var roundedConsumtion = Math.Round(currentConsumtion, 1);
+
+            CurrentTime = DateTime.Now.ConvertToTimeZone(timeZoneId);
+            TimeTitle = $"{CurrentTime:HH:mm} - {roundedConsumtion} öre";
+        }
+
+        [RelayCommand]
+        private async Task UpdateCurrentTimeAsync()
+        {
+            await UpdateTime();
+            await ShowToast("Huuzaa! Tiden är uppdaterad.");
+        }
+
+        public void UpdateAveragePriceTitles()
+        {
+            TodayAveragePriceTitle = $"{TodayAveragePrice} öre - Genomsnittspris idag";
+            TomorrowAveragePriceTitle = $"{TomorrowAveragePrice} öre - Genomsnittspris imorgon";
+        }
+
+        public async Task GetTibberData()
         {
             CurrentEnergyPrice? storedTibberData;
             storedTibberData = GetStoredTibberData();
@@ -159,22 +321,27 @@ namespace CodedByKay.PowerPatrol.ViewModels
             if (storedTibberData is null)
             {
                 storedTibberData = await _tibberService.GetEnergyConsumption();
+                if (storedTibberData is null)
+                {
+                    await ShowToast("Ooppss! Ett fel inträffade när din data skulle hämtas.");
+                }
+
                 _preferencesService.Set(_applicationSettings.TibberHomeDetailsKey, storedTibberData);
             }
 
             TibberAddress = storedTibberData.Address.Address1;
-            CurrentSubscription tibberConsumtionData = storedTibberData.CurrentSubscription;
+            CurrentSubscription tibberConsumtionData = storedTibberData.CurrentSubscription;   
 
             if (tibberConsumtionData is null)
             {
-                await ShowToast("Ooppss! Ett fel inträffade när din data skulle hämtas.");                               
+                await ShowToast("Ooppss! Ett fel inträffade när din data skulle hämtas.");
                 return;
             }
 
-            CalculateTodaysPricesAndAverage(tibberConsumtionData.PriceInfo);
-            CalculatetomorrowsPricesAndAverage(tibberConsumtionData.PriceInfo);
+            string timeZone = storedTibberData.TimeZone;
 
-            await ShowToast("Huuzaa! Grafen är uppdaterad!");
+            CalculateTodaysPricesAndAverage(tibberConsumtionData.PriceInfo, timeZone);
+            CalculateTomorrowsPricesAndAverage(tibberConsumtionData.PriceInfo, timeZone);
         }
     }
 }

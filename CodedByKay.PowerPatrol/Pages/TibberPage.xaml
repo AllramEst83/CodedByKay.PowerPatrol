@@ -4,16 +4,26 @@
              x:Class="CodedByKay.PowerPatrol.Pages.TibberPage"
              xmlns:viewmodel="clr-namespace:CodedByKay.PowerPatrol.ViewModels"
              xmlns:dxc="clr-namespace:DevExpress.Maui.Charts;assembly=DevExpress.Maui.Charts"
+             xmlns:dxe="clr-namespace:DevExpress.Maui.Editors;assembly=DevExpress.Maui.Editors"
              x:DataType="viewmodel:TibberViewModel"
-             xmlns:skia="clr-namespace:SkiaSharp.Extended.UI.Controls;assembly=SkiaSharp.Extended.UI"
              Title="{Binding TibberAddress}">
 
     <ContentPage.ToolbarItems>
+        
         <ToolbarItem 
+            x:DataType="viewmodel:TibberViewModel" 
             x:Name="RefreshButton"
             Text="Refresh"
             IconImageSource="sync.png"
             Command="{Binding RefreshTibberDataCommand}" />
+
+        <ToolbarItem             
+            x:DataType="viewmodel:TibberViewModel" 
+             x:Name="UpdateTimeButton"
+             Text="Update time"
+             IconImageSource="time.png"
+             Command="{Binding UpdateCurrentTimeCommand}" />        
+
     </ContentPage.ToolbarItems>
 
     <ContentPage.Resources>
@@ -25,210 +35,281 @@
 
     </ContentPage.Resources>
 
-    <dxc:ChartView>
-        <!--Chart Lines-->
-        <dxc:ChartView.Series>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
 
-            <!--Data line-->
-            <dxc:SplineSeries DisplayName="Idag" HintOptions="{StaticResource lineSeriesHintOptions}" MarkersVisible="True" x:DataType="viewmodel:TibberViewModel">
+        <ScrollView Orientation="Horizontal" Grid.Row="0">
+            <HorizontalStackLayout HorizontalOptions="CenterAndExpand" Margin="5,5,5,5">
+                <dxe:CheckEdit IsVisible="{Binding ShowTodayChart}" x:Name="TodayChecked" IsChecked="True"  Label="Idag" Margin="10,0,0,0" CheckedChanged="TodayChecked_CheckedChanged"/>
+                <dxe:CheckEdit IsVisible="{Binding ShowTomorrowsChart}" x:Name="TomorrowChecked" IsChecked="True"  Label="Imorgon" Margin="10,0,0,0" CheckedChanged="TomorrowChecked_CheckedChanged"/>
+                <dxe:CheckEdit IsVisible="{Binding IsTodayAveragePriceToggleVisible}" x:Name="AverageConstTodayChecked" IsChecked="True"  Label="Genomsnitt idag" Margin="10,0,0,0" CheckedChanged="AverageConstTodayChecked_CheckedChanged"/>
+                <dxe:CheckEdit IsVisible="{Binding IsTomorrowAveragePriceToggleVisible}" x:Name="AverageConstTomorrowChecked" IsChecked="True"  Label="Genomsnitt imorgon" Margin="10,0,0,0" CheckedChanged="AverageConstTomorrowChecked_CheckedChanged"/>
+                <dxe:CheckEdit IsVisible="True" x:Name="XAxisTimeConstChecked" IsChecked="True"  Label="Tid" Margin="10,0,10,0" CheckedChanged="XAxisTimeConstChecked_CheckedChanged"/>
+            </HorizontalStackLayout>
+        </ScrollView>
 
-                <!--Data-->
-                <dxc:LineSeries.Data>
-                    <dxc:SeriesDataAdapter DataSource="{Binding TibberChartDataToday}"
-                  ArgumentDataMember="Time">
-                        <dxc:ValueDataMember Type="Value" Member="Price"/>
-                    </dxc:SeriesDataAdapter>
-                </dxc:LineSeries.Data>
-                <!--Data-->
+        <dxc:ChartView x:Name="TibberChart" Grid.Row="1">
+            <!--Chart Lines-->
+            <dxc:ChartView.Series>
 
-                <!--Line style-->
-                <dxc:SplineSeries.Style>
-                    <dxc:LineSeriesStyle Stroke="#e056fd" StrokeThickness="2" MarkerSize="6">
-                        <dxc:LineSeriesStyle.MarkerStyle>
-                            <dxc:MarkerStyle Fill="#e056fd"/>
-                        </dxc:LineSeriesStyle.MarkerStyle>
-                    </dxc:LineSeriesStyle>
-                </dxc:SplineSeries.Style>
-                <!--Line style-->
-            </dxc:SplineSeries>
-            <!--Data line-->
+                <!--Data line-->
+                <dxc:StepLineSeries Visible="{Binding ShowTodayChart}" x:Name="TodaysChart" DisplayName="Idag" VisibleInLegend="False" HintOptions="{StaticResource lineSeriesHintOptions}" MarkersVisible="False" x:DataType="viewmodel:TibberViewModel">
 
-            <!--Data line-->
-            <dxc:SplineSeries DisplayName="Imorgon" HintOptions="{StaticResource lineSeriesHintOptions}" MarkersVisible="True" x:DataType="viewmodel:TibberViewModel">
+                    <!--Data-->
+                    <dxc:StepLineSeries.Data>
+                        <dxc:SeriesDataAdapter DataSource="{Binding TibberChartDataToday}" ArgumentDataMember="Time">
+                            <dxc:ValueDataMember Type="Value" Member="Price"/>
+                        </dxc:SeriesDataAdapter>
+                    </dxc:StepLineSeries.Data>
 
-                <!--Data-->
-                <dxc:LineSeries.Data>
-                    <dxc:SeriesDataAdapter DataSource="{Binding TibberChartDataTomorrow}"
-                           ArgumentDataMember="Time">
-                        <dxc:ValueDataMember Type="Value" Member="Price"/>
-                    </dxc:SeriesDataAdapter>
-                </dxc:LineSeries.Data>
-                <!--Data-->
+                    <dxc:StepLineSeries.SegmentColorizer>
+                        <dxc:GradientPointBasedSegmentColorizer>
+                            <dxc:GradientPointBasedSegmentColorizer.PointColorizer>
+                                <dxc:ValueBandPointColorizer>
+                                    <dxc:ValueBandPointColorizer.ColorStops>
+                                        <dxc:ColorStop x:DataType="viewmodel:TibberViewModel"  Color="#6ab04c" Value1="{Binding LowestPriceToday}" Value2="{Binding TodaySegmentPointOne}"/>
+                                        <dxc:ColorStop x:DataType="viewmodel:TibberViewModel"  Color="#eba34b" Value1="{Binding TodaySegmentPointOne}" Value2="{Binding TodaySegmentPointTwo}"/>
+                                        <dxc:ColorStop x:DataType="viewmodel:TibberViewModel"  Color="#eb4d4b" Value1="{Binding TodaySegmentPointTwo}" Value2="{Binding HighestPriceToday}"/>
+                                    </dxc:ValueBandPointColorizer.ColorStops>
+                                </dxc:ValueBandPointColorizer>
+                            </dxc:GradientPointBasedSegmentColorizer.PointColorizer>
+                        </dxc:GradientPointBasedSegmentColorizer>
+                    </dxc:StepLineSeries.SegmentColorizer>
+                    <!--Data-->
 
-                <!--Line style-->
-                <dxc:SplineSeries.Style>
-                    <dxc:LineSeriesStyle Stroke="#6ab04c" StrokeThickness="2" MarkerSize="6">
-                        <dxc:LineSeriesStyle.MarkerStyle>
-                            <dxc:MarkerStyle Fill="#6ab04c"/>
-                        </dxc:LineSeriesStyle.MarkerStyle>
-                    </dxc:LineSeriesStyle>
-                </dxc:SplineSeries.Style>
-                <!--Line style-->
+                    <!--Line style-->
+                    <dxc:StepLineSeries.Style>
+                        <dxc:LineSeriesStyle StrokeThickness="2" />
+                    </dxc:StepLineSeries.Style>
+                    <!--Line style-->
+                </dxc:StepLineSeries>
+                <!--Data line-->
 
-            </dxc:SplineSeries>
-            <!--Data line-->
+                <!--Data line-->
+                <dxc:StepLineSeries Visible="{Binding ShowTomorrowsChart}" x:Name="TomorrowsChart" VisibleInLegend="False" DisplayName="Imorgon" HintOptions="{StaticResource lineSeriesHintOptions}" MarkersVisible="False" x:DataType="viewmodel:TibberViewModel">
 
-        </dxc:ChartView.Series>
-        <!--Chart Lines-->
+                    <!--Data-->
+                    <dxc:StepLineSeries.Data>
+                        <dxc:SeriesDataAdapter DataSource="{Binding TibberChartDataTomorrow}"
+                        ArgumentDataMember="Time">
+                            <dxc:ValueDataMember Type="Value" Member="Price"/>
+                        </dxc:SeriesDataAdapter>
+                    </dxc:StepLineSeries.Data>
+                    <!--Data-->
 
-        <!--Crosshair-->
-        <dxc:ChartView.Hint>
-            <dxc:Hint ShowMode="OnTap">
+                    <dxc:StepLineSeries.SegmentColorizer>
+                        <dxc:GradientPointBasedSegmentColorizer>
+                            <dxc:GradientPointBasedSegmentColorizer.PointColorizer>
+                                <dxc:ValueBandPointColorizer>
+                                    <dxc:ValueBandPointColorizer.ColorStops>
+                                        <dxc:ColorStop x:DataType="viewmodel:TibberViewModel"  Color="#6ab04c" Value1="{Binding LowestPriceTomorrow}" Value2="{Binding TomorrowSegmentPointOne}"/>
+                                        <dxc:ColorStop x:DataType="viewmodel:TibberViewModel"  Color="#eba34b" Value1="{Binding TomorrowSegmentPointOne}" Value2="{Binding TomorrowSegmentPointTwo}"/>
+                                        <dxc:ColorStop x:DataType="viewmodel:TibberViewModel"  Color="#eb4d4b" Value1="{Binding TomorrowSegmentPointTwo}" Value2="{Binding HighestPriceTomorrow}"/>
+                                    </dxc:ValueBandPointColorizer.ColorStops>
+                                </dxc:ValueBandPointColorizer>
+                            </dxc:GradientPointBasedSegmentColorizer.PointColorizer>
+                        </dxc:GradientPointBasedSegmentColorizer>
+                    </dxc:StepLineSeries.SegmentColorizer>
+                    <!--Data-->
 
-                <dxc:Hint.Behavior>
-                    <dxc:CrosshairHintBehavior GroupHeaderTextPattern="{}{A$HH:mm}" MaxSeriesCount="3" />
-                </dxc:Hint.Behavior>
+                    <!--Line style-->
+                    <dxc:StepLineSeries.Style>
+                        <dxc:AreaSeriesStyle StrokeThickness="2" />
+                    </dxc:StepLineSeries.Style>
+                    <!--Line style-->
 
-                <dxc:Hint.Style>
-                    <dxc:HintStyle BackgroundColor="Tan">
+                </dxc:StepLineSeries>
+                <!--Data line-->
 
-                        <dxc:HintStyle.ArgumentLineStyle>
-                            <dxc:CrosshairLineStyle LabelBackgroundColor="Tan" Stroke="Tan">
-                                <dxc:CrosshairLineStyle.TextStyle>
-                                    <dxc:TextStyle Color="Black" Size="12"/>
-                                </dxc:CrosshairLineStyle.TextStyle>
-                            </dxc:CrosshairLineStyle>
-                        </dxc:HintStyle.ArgumentLineStyle>
+            </dxc:ChartView.Series>
+            <!--Chart Lines-->
 
-                        <dxc:HintStyle.ValueLineStyle>
-                            <dxc:CrosshairLineStyle LabelBackgroundColor="Tan" Stroke="Tan">
-                                <dxc:CrosshairLineStyle.TextStyle>
-                                    <dxc:TextStyle Color="Black" Size="12"/>
-                                </dxc:CrosshairLineStyle.TextStyle>
-                            </dxc:CrosshairLineStyle>
-                        </dxc:HintStyle.ValueLineStyle>
+            <!--Crosshair-->
+            <dxc:ChartView.Hint>
+                <dxc:Hint ShowMode="OnTap">
 
-                    </dxc:HintStyle>
-                </dxc:Hint.Style>
+                    <dxc:Hint.Behavior>
+                        <dxc:CrosshairHintBehavior GroupHeaderTextPattern="{}{A$HH:mm}" MaxSeriesCount="3" />
+                    </dxc:Hint.Behavior>
 
-            </dxc:Hint>
-        </dxc:ChartView.Hint>
-        <!--Crosshair-->
+                    <dxc:Hint.Style>
+                        <dxc:HintStyle BackgroundColor="Tan">
 
-        <!--Legend text-->
-        <dxc:ChartView.Legend>
-            <dxc:Legend VerticalPosition="TopOutside" HorizontalPosition="Center" Orientation="LeftToRight">
-                <dxc:Legend.Style>
-                    <dxc:LegendStyle>
-                        <dxc:LegendStyle.TextStyle>
-                            <dxc:TextStyle Color="Tan" Size="14"/>
-                        </dxc:LegendStyle.TextStyle>
-                    </dxc:LegendStyle>
-                </dxc:Legend.Style>
-            </dxc:Legend>
-        </dxc:ChartView.Legend>
-        <!--Legend text-->
+                            <dxc:HintStyle.ArgumentLineStyle>
+                                <dxc:CrosshairLineStyle LabelBackgroundColor="Tan" Stroke="Tan">
+                                    <dxc:CrosshairLineStyle.TextStyle>
+                                        <dxc:TextStyle Color="Black" Size="12"/>
+                                    </dxc:CrosshairLineStyle.TextStyle>
+                                </dxc:CrosshairLineStyle>
+                            </dxc:HintStyle.ArgumentLineStyle>
 
-        <!--X axis config-->
-        <dxc:ChartView.AxisX>
-            <dxc:DateTimeAxisX MeasureUnit="Hour" GridAlignment="Hour" GridSpacing="6">
-                <dxc:DateTimeAxisX.Label>
-                    <dxc:AxisLabel TextFormat="HH:mm" Angle="45">
-                        <dxc:AxisLabel.Style>
-                            <dxc:AxisLabelStyle>
-                                <dxc:AxisLabelStyle.TextStyle>
-                                    <dxc:TextStyle Color="Tan" Size="14"/>
-                                </dxc:AxisLabelStyle.TextStyle>
-                            </dxc:AxisLabelStyle>
-                        </dxc:AxisLabel.Style>
-                    </dxc:AxisLabel>
-                </dxc:DateTimeAxisX.Label>
-            </dxc:DateTimeAxisX>
-        </dxc:ChartView.AxisX>
-        <!--X axid config-->
+                            <dxc:HintStyle.ValueLineStyle>
+                                <dxc:CrosshairLineStyle LabelBackgroundColor="Tan" Stroke="Tan">
+                                    <dxc:CrosshairLineStyle.TextStyle>
+                                        <dxc:TextStyle Color="Black" Size="12"/>
+                                    </dxc:CrosshairLineStyle.TextStyle>
+                                </dxc:CrosshairLineStyle>
+                            </dxc:HintStyle.ValueLineStyle>
 
-        <!--Y axis config-->
-        <dxc:ChartView.AxisY>
-            <dxc:NumericAxisY>
-                <dxc:NumericAxisY.Title>
-                    <dxc:AxisTitle Text="Öre/kWh">
-                        <dxc:AxisTitle.Style>
-                            <dxc:TitleStyle>
-                                <dxc:TitleStyle.TextStyle>
-                                    <dxc:TextStyle Size="16" Color="Tan"/>
-                                </dxc:TitleStyle.TextStyle>
-                            </dxc:TitleStyle>
-                        </dxc:AxisTitle.Style>
-                    </dxc:AxisTitle>
-                </dxc:NumericAxisY.Title>
-                <dxc:NumericAxisY.Label>
-                    <dxc:AxisLabel TextFormat="#.#" Position="Outside">
-                        <dxc:AxisLabel.Style>
-                            <dxc:AxisLabelStyle>
-                                <dxc:AxisLabelStyle.TextStyle>
-                                    <dxc:TextStyle Size="12" Color="Tan"/>
-                                </dxc:AxisLabelStyle.TextStyle>
-                            </dxc:AxisLabelStyle>
-                        </dxc:AxisLabel.Style>
-                    </dxc:AxisLabel>
-                </dxc:NumericAxisY.Label>
+                        </dxc:HintStyle>
+                    </dxc:Hint.Style>
 
-                <dxc:NumericAxisY.ConstantLines>
-                    <dxc:NumericConstantLine x:Name="Today" AxisValue="{Binding TodayAveragePrice}"
-                                       ShowBehind="True"
-                                       VisibleInLegend="False"
-                                       LegendText="Genomsnittspris">
+                </dxc:Hint>
+            </dxc:ChartView.Hint>
+            <!--Crosshair-->
 
-                        <dxc:NumericConstantLine.Title>
-                            <dxc:ConstantLineTitle Text="{Binding TodayAveragePrice}"
-                                             Alignment="Near" 
-                                             ShowBelowLine="False">
-                                <dxc:ConstantLineTitle.Style>
-                                    <dxc:TitleStyle>
-                                        <dxc:TitleStyle.TextStyle>
-                                            <dxc:TextStyle Color="#e056fd" Size="12"/>
-                                        </dxc:TitleStyle.TextStyle>
-                                    </dxc:TitleStyle>
-                                </dxc:ConstantLineTitle.Style>
-                            </dxc:ConstantLineTitle>
-                        </dxc:NumericConstantLine.Title>
+            <!--Legend text-->
+            <dxc:ChartView.Legend>
+                <dxc:Legend VerticalPosition="TopOutside" HorizontalPosition="Center" Orientation="LeftToRight">
+                    <dxc:Legend.Style>
+                        <dxc:LegendStyle>
+                            <dxc:LegendStyle.TextStyle>
+                                <dxc:TextStyle Color="Tan" Size="14"/>
+                            </dxc:LegendStyle.TextStyle>
+                        </dxc:LegendStyle>
+                    </dxc:Legend.Style>
+                </dxc:Legend>
+            </dxc:ChartView.Legend>
+            <!--Legend text-->
 
-                        <dxc:NumericConstantLine.Style>
-                            <dxc:ConstantLineStyle Stroke="#e056fd" Thickness="0.9" Dashes="7 3"/>
-                        </dxc:NumericConstantLine.Style>
-                    </dxc:NumericConstantLine>
+            <!--X axis config-->
+            <dxc:ChartView.AxisX>
+                <!--X axis data-->
+                <dxc:DateTimeAxisX MeasureUnit="Hour" GridAlignment="Hour" GridSpacing="6">
+                    <dxc:DateTimeAxisX.Label>
+                        <dxc:AxisLabel TextFormat="HH:mm" Angle="45">
+                            <dxc:AxisLabel.Style>
+                                <dxc:AxisLabelStyle>
+                                    <dxc:AxisLabelStyle.TextStyle>
+                                        <dxc:TextStyle Color="Tan" Size="14"/>
+                                    </dxc:AxisLabelStyle.TextStyle>
+                                </dxc:AxisLabelStyle>
+                            </dxc:AxisLabel.Style>
+                        </dxc:AxisLabel>
+                    </dxc:DateTimeAxisX.Label>
+                    <!--X axis data-->
 
+                    <!--TimeOfDay-->
+                    <dxc:DateTimeAxisX.ConstantLines>
+                        <dxc:DateTimeConstantLine x:Name="AxisTimeConst" AxisValue="{Binding CurrentTime}" VisibleInLegend="False" LegendText="Tid">
+                            <dxc:DateTimeConstantLine.Title >
+                                <dxc:ConstantLineTitle Text="{Binding TimeTitle}" Alignment="Near" ShowBelowLine="True">
+                                    <dxc:ConstantLineTitle.Style>
+                                        <dxc:TitleStyle>
+                                            <dxc:TitleStyle.TextStyle>
+                                                <dxc:TextStyle Color="Yellow" Size="12"/>
+                                            </dxc:TitleStyle.TextStyle>
+                                        </dxc:TitleStyle>
+                                    </dxc:ConstantLineTitle.Style>
+                                </dxc:ConstantLineTitle>
+                            </dxc:DateTimeConstantLine.Title>
 
-                    <dxc:NumericConstantLine x:Name="Tomorrow" AxisValue="{Binding TomorrowAveragePrice}"
-                               ShowBehind="True"
-                               VisibleInLegend="False"
-                               LegendText="Genomsnittspris">
+                            <dxc:DateTimeConstantLine.Style>
+                                <dxc:ConstantLineStyle Stroke="Yellow" Thickness="0.2"/>
+                            </dxc:DateTimeConstantLine.Style>
+                        </dxc:DateTimeConstantLine>
+                    </dxc:DateTimeAxisX.ConstantLines>
+                    <!--TimeOfDay-->
+                </dxc:DateTimeAxisX>
+            </dxc:ChartView.AxisX>
+            <!--X axis config-->
 
-                        <dxc:NumericConstantLine.Title>
-                            <dxc:ConstantLineTitle Text="{Binding TomorrowAveragePrice}"
-                                     Alignment="Near" 
-                                     ShowBelowLine="True">
-                                <dxc:ConstantLineTitle.Style>
-                                    <dxc:TitleStyle>
-                                        <dxc:TitleStyle.TextStyle>
-                                            <dxc:TextStyle Color="#6ab04c" Size="12"/>
-                                        </dxc:TitleStyle.TextStyle>
-                                    </dxc:TitleStyle>
-                                </dxc:ConstantLineTitle.Style>
-                            </dxc:ConstantLineTitle>
-                        </dxc:NumericConstantLine.Title>
+            <dxc:ChartView.AxisY>
+                <dxc:NumericAxisY>
+                    <!--Y axis title-->
+                    <dxc:NumericAxisY.Title>
+                        <dxc:AxisTitle Text="Öre/kWh">
+                            <dxc:AxisTitle.Style>
+                                <dxc:TitleStyle>
+                                    <dxc:TitleStyle.TextStyle>
+                                        <dxc:TextStyle Size="16" Color="Tan"/>
+                                    </dxc:TitleStyle.TextStyle>
+                                </dxc:TitleStyle>
+                            </dxc:AxisTitle.Style>
+                        </dxc:AxisTitle>
+                    </dxc:NumericAxisY.Title>
+                    <!--Y axis title-->
 
-                        <dxc:NumericConstantLine.Style>
-                            <dxc:ConstantLineStyle Stroke="#6ab04c" Thickness="0.9" Dashes="7 3"/>
-                        </dxc:NumericConstantLine.Style>
-                    </dxc:NumericConstantLine>
+                    <!--y axis data label style-->
+                    <dxc:NumericAxisY.Label>
+                        <dxc:AxisLabel TextFormat="#.#" Position="Outside">
+                            <dxc:AxisLabel.Style>
+                                <dxc:AxisLabelStyle>
+                                    <dxc:AxisLabelStyle.TextStyle>
+                                        <dxc:TextStyle Size="12" Color="Tan"/>
+                                    </dxc:AxisLabelStyle.TextStyle>
+                                </dxc:AxisLabelStyle>
+                            </dxc:AxisLabel.Style>
+                        </dxc:AxisLabel>
+                    </dxc:NumericAxisY.Label>
+                    <!--y axis data label style-->
 
+                    <!--Constant lines-->
+                    <dxc:NumericAxisY.ConstantLines>
+                        <!--Todays average price of the day constant-->
+                        <dxc:NumericConstantLine x:Name="TodayAveragePrice" AxisValue="{Binding TodayAveragePrice}" Visible="{Binding IsTodayAveragePriceConstantVisible}"
+                                    ShowBehind="True"
+                                    VisibleInLegend="False"
+                                    LegendText="Genomsnittspris"
+                                    x:DataType="viewmodel:TibberViewModel">
 
-                </dxc:NumericAxisY.ConstantLines>
-            </dxc:NumericAxisY>
-        </dxc:ChartView.AxisY>
-        <!--Y axis config-->
+                            <dxc:NumericConstantLine.Title>
+                                <dxc:ConstantLineTitle Text="{Binding TodayAveragePriceTitle}"
+                                          Alignment="Near" 
+                                          ShowBelowLine="False">
+                                    <dxc:ConstantLineTitle.Style>
+                                        <dxc:TitleStyle>
+                                            <dxc:TitleStyle.TextStyle>
+                                                <dxc:TextStyle Color="#e056fd" Size="12"/>
+                                            </dxc:TitleStyle.TextStyle>
+                                        </dxc:TitleStyle>
+                                    </dxc:ConstantLineTitle.Style>
+                                </dxc:ConstantLineTitle>
+                            </dxc:NumericConstantLine.Title>
 
-    </dxc:ChartView>
+                            <dxc:NumericConstantLine.Style>
+                                <dxc:ConstantLineStyle Stroke="#e056fd" Thickness="0.5" Dashes="4 2"/>
+                            </dxc:NumericConstantLine.Style>
+                        </dxc:NumericConstantLine>
+                        <!--Todays average price of the day constant line-->
+
+                        <!--Tomorrow average price of the day constant line-->
+                        <dxc:NumericConstantLine x:Name="TomorrowAveragePrice" AxisValue="{Binding TomorrowAveragePrice}" Visible="{Binding IsTomorrowAveragePriceConstantVisible}"
+                            ShowBehind="True"
+                            VisibleInLegend="False"
+                            LegendText="Genomsnittspris"
+                            x:DataType="viewmodel:TibberViewModel">
+
+                            <dxc:NumericConstantLine.Title>
+                                <dxc:ConstantLineTitle Text="{Binding TomorrowAveragePriceTitle}"
+                                  Alignment="Near" 
+                                  ShowBelowLine="False">
+                                    <dxc:ConstantLineTitle.Style>
+                                        <dxc:TitleStyle>
+                                            <dxc:TitleStyle.TextStyle>
+                                                <dxc:TextStyle Color="#7ed6df" Size="12"/>
+                                            </dxc:TitleStyle.TextStyle>
+                                        </dxc:TitleStyle>
+                                    </dxc:ConstantLineTitle.Style>
+                                </dxc:ConstantLineTitle>
+                            </dxc:NumericConstantLine.Title>
+
+                            <dxc:NumericConstantLine.Style>
+                                <dxc:ConstantLineStyle Stroke="#7ed6df" Thickness="0.5" Dashes="4 2"/>
+                            </dxc:NumericConstantLine.Style>
+                        </dxc:NumericConstantLine>
+                        <!--Tomorrow average price of the day constant line-->
+
+                    </dxc:NumericAxisY.ConstantLines>
+                    <!--Constant lines-->
+                </dxc:NumericAxisY>
+            </dxc:ChartView.AxisY>
+            <!--Y axis config-->
+
+        </dxc:ChartView>
+    </Grid>
 
 </ContentPage>

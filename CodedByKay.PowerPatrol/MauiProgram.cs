@@ -55,12 +55,13 @@ namespace CodedByKay.PowerPatrol
             });
 
             builder.Services
-                     //Services
-                     .AddSingleton<ITibberService, TibberService>()
-                     .AddSingleton<IPreferencesService, PreferencesService>()
+            //Services
+            .AddSingleton<ITibberService, TibberService>()
+            .AddSingleton<IPreferencesService, PreferencesService>()
 
             //Pages
              .AddSingleton<MainPage>()
+             .AddSingleton<InitializationPage>()
              .AddSingleton<TibberPage>()
              .AddSingleton<EaseePage>()
 

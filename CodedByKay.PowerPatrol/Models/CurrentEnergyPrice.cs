@@ -5,6 +5,7 @@
 
     public class CurrentEnergyPrice
     {
+        public string TimeZone { get; set; }
         public Address Address { get; set; }
         public CurrentSubscription CurrentSubscription { get; set; }
     }

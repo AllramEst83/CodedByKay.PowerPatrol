@@ -1,7 +1,5 @@
-﻿using Android;
-using Android.App;
+﻿using Android.App;
 using Android.Content.PM;
-using Android.OS;
 
 namespace CodedByKay.PowerPatrol
 {
