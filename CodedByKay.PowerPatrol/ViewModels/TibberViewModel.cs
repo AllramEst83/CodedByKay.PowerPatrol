@@ -17,6 +17,7 @@ namespace CodedByKay.PowerPatrol.ViewModels
         private readonly ITibberService _tibberService;
         private readonly IPreferencesService _preferencesService;
         private readonly ApplicationSettings _applicationSettings;
+        private readonly IUserPersmissionsService _userPersmissionsService;
 
         //Today
         [ObservableProperty]
@@ -24,12 +25,6 @@ namespace CodedByKay.PowerPatrol.ViewModels
 
         [ObservableProperty]
         private bool showTodayChart = false;
-
-        [ObservableProperty]
-        private bool isTodayAveragePriceConstantVisible = false;
-
-        [ObservableProperty]
-        private bool isTodayAveragePriceToggleVisible = false;
 
         [ObservableProperty]
         private string todayAveragePriceTitle = string.Empty;
@@ -53,12 +48,6 @@ namespace CodedByKay.PowerPatrol.ViewModels
 
         [ObservableProperty]
         private bool showTomorrowsChart = false;
-
-        [ObservableProperty]
-        private bool isTomorrowAveragePriceConstantVisible = false;
-
-        [ObservableProperty]
-        private bool isTomorrowAveragePriceToggleVisible = false;
 
         [ObservableProperty]
         private string tomorrowAveragePriceTitle = string.Empty;
@@ -85,10 +74,6 @@ namespace CodedByKay.PowerPatrol.ViewModels
         [ObservableProperty]
         private DateTime currentTime;
 
-
-
-        private bool isRegistered = false;
-
         [ObservableProperty]
         ObservableCollection<EnergyPrice> tibberChartDataToday = [];
 
@@ -98,35 +83,13 @@ namespace CodedByKay.PowerPatrol.ViewModels
         public TibberViewModel(
             ITibberService tibberService,
             IPreferencesService preferencesService,
-            IOptions<ApplicationSettings> applicationSettings)
+            IOptions<ApplicationSettings> applicationSettings,
+            IUserPersmissionsService userPersmissionsService)
         {
             _tibberService = tibberService;
             _preferencesService = preferencesService;
+            _userPersmissionsService = userPersmissionsService;
             _applicationSettings = applicationSettings.Value;
-        }
-
-        public void RegisterEvents()
-        {
-            if (!isRegistered)
-            {
-                WeakReferenceMessenger.Default.Register<LoadTibberDataEventMessage>(this, async (recipient, message) =>
-                {
-                    await UpdateTime();
-                    await GetTibberData();
-                    UpdateAveragePriceTitles();
-                });
-
-                isRegistered = true;
-            }
-        }
-
-        public void UnregisterEvents()
-        {
-            if (isRegistered)
-            {
-                WeakReferenceMessenger.Default.Unregister<LoadTibberDataEventMessage>(this);
-                isRegistered = false;
-            }
         }
 
         [RelayCommand]
@@ -150,9 +113,21 @@ namespace CodedByKay.PowerPatrol.ViewModels
             await UpdateTime();
             _preferencesService.Clear();
             await GetTibberData();
-            UpdateAveragePriceTitles();
 
             await ShowToast("Huuzaa! Grafen är uppdaterad!");
+        }
+
+        public async Task GetUserPermissions()
+        {
+            var cancellactionTokenSource = new CancellationTokenSource();
+            var cancellationToken = cancellactionTokenSource.Token;
+
+            var userHasGivenPermissions = await _userPersmissionsService.GetPermissionsFromUser(cancellationToken);
+            if (!userHasGivenPermissions)
+            {
+                await ShowToast("Ooppss! Power patrol behöver internet för att fungera korrent.");
+                return;
+            }
         }
 
         private CurrentEnergyPrice? GetStoredTibberData()
@@ -203,9 +178,11 @@ namespace CodedByKay.PowerPatrol.ViewModels
                 TodaySegmentPointOne = Math.Max(TodaySegmentPointOne, LowestPriceToday);
                 TodaySegmentPointTwo = Math.Min(TodaySegmentPointTwo, HighestPriceToday);
 
+                TodayAveragePriceTitle = $"Genomsnittspris idag {TodayAveragePrice} öre";
+
                 ShowTodayChart = true;
-                IsTodayAveragePriceToggleVisible = true;
-                IsTodayAveragePriceConstantVisible = true;
+                //IsTodayAveragePriceToggleVisible = true;
+                //IsTodayAveragePriceConstantVisible = true;
 
                 Console.WriteLine("-----------------------PRICES-----------------------------");
                 Console.WriteLine("TODAY");
@@ -218,8 +195,6 @@ namespace CodedByKay.PowerPatrol.ViewModels
             else
             {
                 ShowTodayChart = false;
-                IsTodayAveragePriceToggleVisible = false;
-                IsTodayAveragePriceConstantVisible = false;
             }
         }
 
@@ -259,9 +234,9 @@ namespace CodedByKay.PowerPatrol.ViewModels
                 TomorrowSegmentPointOne = Math.Max(TomorrowSegmentPointOne, LowestPriceTomorrow);
                 TomorrowSegmentPointTwo = Math.Min(TomorrowSegmentPointTwo, HighestPriceTomorrow);
 
+                TomorrowAveragePriceTitle = $" Genomsnittspris imorgon {TomorrowAveragePrice} öre";
+
                 ShowTomorrowsChart = true;
-                IsTomorrowAveragePriceToggleVisible = true;
-                IsTomorrowAveragePriceConstantVisible = true;
 
                 Console.WriteLine("-----------------------PRICES-----------------------------");
                 Console.WriteLine("TOMORROW");
@@ -269,13 +244,11 @@ namespace CodedByKay.PowerPatrol.ViewModels
                 Console.WriteLine($"TomorrowSegmentPointOne: {TomorrowSegmentPointOne}");
                 Console.WriteLine($"TomorrowSegmentPointTwo: {TomorrowSegmentPointTwo}");
                 Console.WriteLine($"HighestPriceToday: {HighestPriceTomorrow}");
-                Console.WriteLine("-----------------------PRICES-----------------------------");              
+                Console.WriteLine("-----------------------PRICES-----------------------------");
             }
             else
             {
                 ShowTomorrowsChart = false;
-                IsTomorrowAveragePriceToggleVisible = false;
-                IsTomorrowAveragePriceConstantVisible = false;
             }
         }
 
@@ -306,12 +279,6 @@ namespace CodedByKay.PowerPatrol.ViewModels
             await ShowToast("Huuzaa! Tiden är uppdaterad.");
         }
 
-        public void UpdateAveragePriceTitles()
-        {
-            TodayAveragePriceTitle = $"{TodayAveragePrice} öre - Genomsnittspris idag";
-            TomorrowAveragePriceTitle = $"{TomorrowAveragePrice} öre - Genomsnittspris imorgon";
-        }
-
         public async Task GetTibberData()
         {
             CurrentEnergyPrice? storedTibberData;
@@ -330,7 +297,7 @@ namespace CodedByKay.PowerPatrol.ViewModels
             }
 
             TibberAddress = storedTibberData.Address.Address1;
-            CurrentSubscription tibberConsumtionData = storedTibberData.CurrentSubscription;   
+            CurrentSubscription tibberConsumtionData = storedTibberData.CurrentSubscription;
 
             if (tibberConsumtionData is null)
             {

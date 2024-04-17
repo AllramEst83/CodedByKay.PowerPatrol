@@ -1,6 +1,6 @@
 ﻿namespace CodedByKay.PowerPatrol.EventMessages
 {
-    public class LoadTibberDataEventMessage
+    public class GetUserPermissionMessage
     {
     }
 }

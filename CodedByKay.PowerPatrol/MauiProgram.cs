@@ -58,6 +58,7 @@ namespace CodedByKay.PowerPatrol
             //Services
             .AddSingleton<ITibberService, TibberService>()
             .AddSingleton<IPreferencesService, PreferencesService>()
+            .AddSingleton<IUserPersmissionsService, UserPersmissionsService>()
 
             //Pages
              .AddSingleton<MainPage>()
