@@ -30,7 +30,7 @@ namespace CodedByKay.PowerPatrol.Services
         {
             var isNetworkStateGranted = await CheckForPermissionForNetworkState();
 
-            if (!isNetworkStateGranted)
+            if (isNetworkStateGranted)
             {
                 return true;
             }

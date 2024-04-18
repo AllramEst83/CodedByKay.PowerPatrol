@@ -55,7 +55,7 @@
                 <Frame CornerRadius="20" Padding="10,5" BackgroundColor="#2e2e2e" HasShadow="False">
                     <Label Text="{Binding TodayAveragePriceTitle}" VerticalTextAlignment="Center" TextColor="Tan"/>
                 </Frame>
-                <Frame CornerRadius="20" Padding="10,5" BackgroundColor="#2e2e2e" HasShadow="False">
+                <Frame CornerRadius="20" Padding="10,5" BackgroundColor="#2e2e2e" HasShadow="False" IsVisible="{Binding ShowTomorrowsChart}">
                     <Label Text="{Binding TomorrowAveragePriceTitle}" VerticalTextAlignment="Center" TextColor="Tan"/>
                 </Frame>
             </HorizontalStackLayout>
