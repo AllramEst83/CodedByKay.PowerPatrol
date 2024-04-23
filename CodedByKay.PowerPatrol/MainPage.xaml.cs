@@ -14,7 +14,7 @@ namespace CodedByKay.PowerPatrol
                 viewModel = Application.Current.Handler.MauiContext.Services.GetService<MainPageViewModel>();
                 if (viewModel is null)
                 {
-                    throw new InvalidOperationException("ContactViewModel service not found.");
+                    throw new InvalidOperationException("MainPageViewModel service not found.");
                 }
             }
             else

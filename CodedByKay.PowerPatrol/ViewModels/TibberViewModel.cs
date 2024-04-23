@@ -1,11 +1,9 @@
-﻿using CodedByKay.PowerPatrol.EventMessages;
-using CodedByKay.PowerPatrol.Extensions;
+﻿using CodedByKay.PowerPatrol.Extensions;
 using CodedByKay.PowerPatrol.Interfaces;
 using CodedByKay.PowerPatrol.Models;
 using CommunityToolkit.Maui.Alerts;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using CommunityToolkit.Mvvm.Messaging;
 using DevExpress.Maui.Charts;
 using Microsoft.Extensions.Options;
 using System.Collections.ObjectModel;
@@ -22,31 +20,16 @@ namespace CodedByKay.PowerPatrol.ViewModels
 
         //Today
         [ObservableProperty]
-        private double todayAveragePrice = 0;
-
-        [ObservableProperty]
         private bool showTodayChart = false;
 
         [ObservableProperty]
         private string todayAveragePriceTitle = string.Empty;
 
         [ObservableProperty]
-        private double lowestPriceToday = 0;
-
-        [ObservableProperty]
-        private double highestPriceToday = 0;
-
-        [ObservableProperty]
-        double todaySegmentPointOne = 0;
-
-        [ObservableProperty]
-        double todaySegmentPointTwo = 0;
+        private ValueBandPointColorizer todayColorizer;
         //Today
 
         //Tomorrow
-        [ObservableProperty]
-        private double tomorrowAveragePrice = 0;
-
         [ObservableProperty]
         private bool showTomorrowsChart = false;
 
@@ -54,16 +37,7 @@ namespace CodedByKay.PowerPatrol.ViewModels
         private string tomorrowAveragePriceTitle = string.Empty;
 
         [ObservableProperty]
-        private double lowestPriceTomorrow = 0;
-
-        [ObservableProperty]
-        private double highestPriceTomorrow = 0;
-
-        [ObservableProperty]
-        private double tomorrowSegmentPointOne = 0;
-
-        [ObservableProperty]
-        private double tomorrowSegmentPointTwo = 0;
+        private ValueBandPointColorizer tomorrowColorizer;
         //Tomorrow
 
         [ObservableProperty]
@@ -96,20 +70,11 @@ namespace CodedByKay.PowerPatrol.ViewModels
         [RelayCommand]
         private async Task RefreshTibberData()
         {
-            TibberChartDataToday = [];
-            TibberChartDataTomorrow = [];
+            TibberChartDataToday.Clear();
+            TibberChartDataTomorrow.Clear();
 
             ShowTodayChart = false;
             ShowTomorrowsChart = false;
-
-            TodayAveragePrice = 0;
-            TomorrowAveragePrice = 0;
-
-            LowestPriceToday = 0;
-            HighestPriceToday = 0;
-
-            LowestPriceTomorrow = 0;
-            HighestPriceTomorrow = 0;
 
             await UpdateTime();
             _preferencesService.Clear();
@@ -164,39 +129,43 @@ namespace CodedByKay.PowerPatrol.ViewModels
                     if (totalInOre < lowestPrice) lowestPrice = totalInOre;
                 }
 
-                HighestPriceToday = Math.Ceiling(highestPrice);
-                LowestPriceToday = Math.Floor(lowestPrice);
-
-                // Calculate the average price and round it
-                double averagePriceToday = todayTotalSum / priceInfo.Today.Count;
-                TodayAveragePrice = Math.Round(averagePriceToday, 0); // Ensuring no decimals
-
-                // Calculate the segment points based on the rounded average price
-                TodaySegmentPointOne = TodayAveragePrice - 10;
-                TodaySegmentPointTwo = TodayAveragePrice + 10;
-
-                // Ensure the segment points do not exceed the bounds of lowest and highest prices
-                TodaySegmentPointOne = Math.Max(TodaySegmentPointOne, LowestPriceToday);
-                TodaySegmentPointTwo = Math.Min(TodaySegmentPointTwo, HighestPriceToday);
-
-                TodayAveragePriceTitle = $"Genomsnittspris idag {TodayAveragePrice} öre";
+                SetTodayPriceDetails(highestPrice, lowestPrice, todayTotalSum, priceInfo.Today.Count);
 
                 ShowTodayChart = true;
-                //IsTodayAveragePriceToggleVisible = true;
-                //IsTodayAveragePriceConstantVisible = true;
-
-                Console.WriteLine("-----------------------PRICES-----------------------------");
-                Console.WriteLine("TODAY");
-                Console.WriteLine($"LowestPriceToday: {LowestPriceToday}");
-                Console.WriteLine($"SegmentPointOne: {TodaySegmentPointOne}");
-                Console.WriteLine($"TodaySegmentPointTwo: {TodaySegmentPointTwo}");
-                Console.WriteLine($"HighestPriceToday: {HighestPriceToday}");
-                Console.WriteLine("-----------------------PRICES-----------------------------");
             }
             else
             {
                 ShowTodayChart = false;
             }
+        }
+
+        private void SetTodayPriceDetails(double highestPrice, double lowestPrice, double todayTotalSum, int tomorrowCount)
+        {
+            var roundedHighestPriceToday = Math.Ceiling(highestPrice);
+            var roundedLowestPriceToday = Math.Floor(lowestPrice);
+
+            // Calculate the average price and round it
+            double averagePriceToday = todayTotalSum / tomorrowCount;
+            var todayAveragePrice = Math.Round(averagePriceToday, 1);
+
+            var roundedAveragePricetoday = Math.Round(averagePriceToday, 0); // Ensuring no decimals
+
+            // Calculate the segment points based on the rounded average price
+            var todaySegmentPointOne = roundedAveragePricetoday - 12;
+            var todaySegmentPointTwo = roundedAveragePricetoday + 12;
+
+            // Ensure the segment points do not exceed the bounds of lowest and highest prices
+            todaySegmentPointOne = Math.Max(todaySegmentPointOne, roundedLowestPriceToday);
+            todaySegmentPointTwo = Math.Min(todaySegmentPointTwo, roundedHighestPriceToday);
+
+            SetTodayAveragePriceTitle(todayAveragePrice);
+
+            TodayColorizer = SetColorizerForChart(roundedLowestPriceToday, todaySegmentPointOne, todaySegmentPointTwo, roundedHighestPriceToday);
+        }
+
+        private void SetTodayAveragePriceTitle(double todayAveragePrice)
+        {
+            TodayAveragePriceTitle = $"Genomsnittspris idag {todayAveragePrice} öre";
         }
 
         private void CalculateTomorrowsPricesAndAverage(PriceInfo priceInfo, string timeZone)
@@ -220,37 +189,54 @@ namespace CodedByKay.PowerPatrol.ViewModels
                     if (totalInOre < lowestPrice) lowestPrice = totalInOre;
                 }
 
-                HighestPriceTomorrow = Math.Ceiling(highestPrice);
-                LowestPriceTomorrow = Math.Floor(lowestPrice);
-
-                // Calculate the average price and round it
-                double averagePriceTomorrow = tomorrowTotalSum / priceInfo.Tomorrow.Count;
-                TomorrowAveragePrice = Math.Round(averagePriceTomorrow, 0); // Ensuring no decimals
-
-                // Calculate the segment points based on the rounded average price
-                TomorrowSegmentPointOne = TomorrowAveragePrice - 10;
-                TomorrowSegmentPointTwo = TomorrowAveragePrice + 10;
-
-                // Ensure the segment points do not exceed the bounds of lowest and highest prices
-                TomorrowSegmentPointOne = Math.Max(TomorrowSegmentPointOne, LowestPriceTomorrow);
-                TomorrowSegmentPointTwo = Math.Min(TomorrowSegmentPointTwo, HighestPriceTomorrow);
-
-                TomorrowAveragePriceTitle = $" Genomsnittspris imorgon {TomorrowAveragePrice} öre";
+                SetTomorrowPriceDetails(highestPrice, lowestPrice, tomorrowTotalSum, priceInfo.Tomorrow.Count);
 
                 ShowTomorrowsChart = true;
-
-                Console.WriteLine("-----------------------PRICES-----------------------------");
-                Console.WriteLine("TOMORROW");
-                Console.WriteLine($"LowestPriceToday: {LowestPriceTomorrow}");
-                Console.WriteLine($"TomorrowSegmentPointOne: {TomorrowSegmentPointOne}");
-                Console.WriteLine($"TomorrowSegmentPointTwo: {TomorrowSegmentPointTwo}");
-                Console.WriteLine($"HighestPriceToday: {HighestPriceTomorrow}");
-                Console.WriteLine("-----------------------PRICES-----------------------------");
             }
             else
             {
                 ShowTomorrowsChart = false;
             }
+        }
+
+        private void SetTomorrowPriceDetails(double highestPrice, double lowestPrice, double tomorrowTotalSum, int tomorrowCount)
+        {
+            var roundedHighestPriceTomorrow = Math.Ceiling(highestPrice);
+            var roundedLowestPriceTomorrow = Math.Floor(lowestPrice);
+
+            // Calculate the average price and round it
+            double averagePriceTomorrow = tomorrowTotalSum / tomorrowCount;
+            var tomorrowAveragePrice = Math.Round(averagePriceTomorrow, 1);
+
+            var roundedAveragePriceTomorrow = Math.Round(averagePriceTomorrow, 0); // Ensuring no decimals
+
+            // Calculate the segment points based on the rounded average price
+            var tomorrowSegmentPointOne = roundedAveragePriceTomorrow - 12;
+            var tomorrowSegmentPointTwo = roundedAveragePriceTomorrow + 12;
+
+            // Ensure the segment points do not exceed the bounds of lowest and highest prices
+            tomorrowSegmentPointOne = Math.Max(tomorrowSegmentPointOne, roundedLowestPriceTomorrow);
+            tomorrowSegmentPointTwo = Math.Min(tomorrowSegmentPointTwo, roundedHighestPriceTomorrow);
+
+            SetTomorrowAveragePriceTitle(tomorrowAveragePrice);
+
+            TomorrowColorizer = SetColorizerForChart(roundedLowestPriceTomorrow, tomorrowSegmentPointOne, tomorrowSegmentPointTwo, roundedHighestPriceTomorrow);
+        }
+
+        private void SetTomorrowAveragePriceTitle(double tomorrowAveragePrice)
+        {
+            TomorrowAveragePriceTitle = $" Genomsnittspris imorgon {tomorrowAveragePrice} öre";
+        }
+
+        private ValueBandPointColorizer SetColorizerForChart(double lowest, double segmentPointOne, double segmentPointTwo, double highest)
+        {
+            var pointColorizer = new ValueBandPointColorizer();
+
+            pointColorizer.ColorStops.Add(new ColorStop() { Color = Color.FromArgb("#6ab04c"), Value1 = lowest, Value2 = segmentPointOne }); ;
+            pointColorizer.ColorStops.Add(new ColorStop() { Color = Color.FromArgb("#eba34b"), Value1 = segmentPointOne, Value2 = segmentPointTwo });
+            pointColorizer.ColorStops.Add(new ColorStop() { Color = Color.FromArgb("#eb4d4b"), Value1 = segmentPointTwo, Value2 = highest });
+
+            return pointColorizer;
         }
 
         private static async Task ShowToast(string message)

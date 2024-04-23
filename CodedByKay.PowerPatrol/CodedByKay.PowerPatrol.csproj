@@ -59,9 +59,11 @@
 	<ItemGroup>
     <PackageReference Include="CommunityToolkit.Maui" Version="7.0.1" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
-    <PackageReference Include="DevExpress.Maui.Charts" Version="24.1.1-alpha-24085" />
-    <PackageReference Include="DevExpress.Maui.Editors" Version="24.1.1-alpha-24085" />
     <PackageReference Include="Plugin.LocalNotification" Version="11.1.1" />
+    
+    <PackageReference Include="DevExpress.Maui.Editors" Version="23.2.5" />
+    <PackageReference Include="DevExpress.Maui.Charts" Version="24.1.1-alpha-24085" />
+    <PackageReference Include="DevExpress.Maui.Core" Version="24.1.1-alpha-24085" />
     
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="7.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
